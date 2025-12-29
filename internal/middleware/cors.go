@@ -16,6 +16,16 @@ func CORSMiddleware(cfg *config.Config) gin.HandlerFunc {
 		allowedOrigins = []string{"*"} // Default: allow all
 	}
 
+	// Check if we have wildcard (*) configured
+	hasWildcard := false
+	for i, origin := range allowedOrigins {
+		if strings.TrimSpace(origin) == "*" {
+			hasWildcard = true
+			allowedOrigins[i] = "*" // Normalize to exactly "*"
+			break
+		}
+	}
+
 	// Parse allowed methods
 	allowedMethods := parseStringList(cfg.CORSAllowedMethods)
 	if len(allowedMethods) == 0 {
@@ -38,24 +48,39 @@ func CORSMiddleware(cfg *config.Config) gin.HandlerFunc {
 		originAllowed := false
 		var allowedOriginValue string
 
-		if len(allowedOrigins) == 1 && allowedOrigins[0] == "*" {
+		// Debug: log CORS configuration (only in development)
+		// Remove or comment out in production
+		if gin.Mode() == gin.DebugMode {
+			gin.DefaultWriter.Write([]byte(
+				"[CORS] Request Origin: " + origin + "\n" +
+					"[CORS] Allowed Origins: " + strings.Join(allowedOrigins, ", ") + "\n" +
+					"[CORS] Allow Credentials: " + strconv.FormatBool(cfg.CORSAllowCredentials) + "\n",
+			))
+		}
+
+		// Check if we have wildcard (*) configured
+		if hasWildcard || (len(allowedOrigins) == 1 && allowedOrigins[0] == "*") {
 			// Allow all origins
 			originAllowed = true
-			if origin != "" {
-				allowedOriginValue = origin
-			} else {
-				// No origin header means same-origin request
-				// If credentials are allowed, we can't use "*", so we need to use the request origin
-				// For same-origin, we'll construct it from the request
-				if cfg.CORSAllowCredentials {
+
+			// If credentials are allowed, we CANNOT use "*" - must use specific origin
+			// This is a CORS specification requirement
+			if cfg.CORSAllowCredentials {
+				// When credentials are allowed, we must return the specific origin
+				if origin != "" {
+					allowedOriginValue = origin
+				} else {
+					// No origin header means same-origin request
+					// Construct origin from request
 					scheme := "http"
 					if c.Request.TLS != nil {
 						scheme = "https"
 					}
 					allowedOriginValue = scheme + "://" + c.Request.Host
-				} else {
-					allowedOriginValue = "*"
 				}
+			} else {
+				// When credentials are NOT allowed, we can use "*"
+				allowedOriginValue = "*"
 			}
 		} else {
 			// If no origin header (same-origin request), allow it

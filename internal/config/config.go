@@ -115,6 +115,11 @@ func parseInt(s string) (int, error) {
 // logConfigStatus logs configuration status without sensitive data
 func logConfigStatus(cfg *Config) {
 	log.Println("=== Configuration Status ===")
+	log.Printf("Port: %s", cfg.Port)
+	log.Printf("CORS Allowed Origins: %s", cfg.CORSAllowedOrigins)
+	log.Printf("CORS Allow Credentials: %v", cfg.CORSAllowCredentials)
+	log.Printf("CORS Allowed Methods: %s", cfg.CORSAllowedMethods)
+	log.Printf("CORS Allowed Headers: %s", cfg.CORSAllowedHeaders)
 	log.Printf("Notifications Enabled: %v", cfg.NotificationsEnabled)
 	log.Printf("Notification Interval: %s", cfg.NotificationCheckInterval)
 	log.Printf("SMTP Host: %s", maskIfEmpty(cfg.SMTPHost))
