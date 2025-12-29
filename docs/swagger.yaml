@@ -1,0 +1,1062 @@
+basePath: /api/v1
+definitions:
+  handlers.AuthResponse:
+    properties:
+      message:
+        example: Login successful
+        type: string
+      token:
+        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        type: string
+      user: {}
+    type: object
+  handlers.CreateCommentRequest:
+    properties:
+      content:
+        example: This is a comment on the task
+        maxLength: 5000
+        minLength: 1
+        type: string
+      task_id:
+        example: 1
+        type: integer
+    required:
+    - content
+    - task_id
+    type: object
+  handlers.CreateTagRequest:
+    properties:
+      color:
+        description: 'Optional: hex color code'
+        example: '#FF5733'
+        type: string
+      name:
+        example: Important
+        maxLength: 50
+        minLength: 1
+        type: string
+    required:
+    - name
+    type: object
+  handlers.CreateTaskRequest:
+    properties:
+      description:
+        example: Clean all rooms
+        type: string
+      due_date:
+        description: ISO 8601 format
+        example: "2024-12-31T23:59:59Z"
+        type: string
+      priority:
+        description: 'Optional: task priority'
+        enum:
+        - baixa
+        - media
+        - alta
+        - urgente
+        example: alta
+        type: string
+      tag_ids:
+        description: 'Optional: IDs of tags to associate'
+        items:
+          type: integer
+        type: array
+      title:
+        example: Clean the house
+        maxLength: 200
+        minLength: 1
+        type: string
+      type:
+        allOf:
+        - $ref: '#/definitions/models.TaskType'
+        enum:
+        - casa
+        - trabalho
+        - lazer
+        - saude
+        example: casa
+      user_id:
+        description: 'Optional: if provided, assign to another user'
+        example: 2
+        type: integer
+    required:
+    - title
+    - type
+    type: object
+  handlers.ErrorResponse:
+    properties:
+      error:
+        type: string
+      message:
+        type: string
+    type: object
+  handlers.LoginRequest:
+    properties:
+      password:
+        example: password123
+        type: string
+      username:
+        description: Username or email address (e.g., "johndoe" or "john@example.com")
+        example: johndoe
+        type: string
+    required:
+    - password
+    - username
+    type: object
+  handlers.RegisterRequest:
+    properties:
+      email:
+        example: john@example.com
+        type: string
+      password:
+        example: password123
+        minLength: 6
+        type: string
+      username:
+        example: johndoe
+        maxLength: 50
+        minLength: 3
+        type: string
+    required:
+    - email
+    - password
+    - username
+    type: object
+  handlers.SuccessResponse:
+    properties:
+      data: {}
+      message:
+        type: string
+    type: object
+  handlers.UpdateCommentRequest:
+    properties:
+      content:
+        example: Updated comment text
+        maxLength: 5000
+        minLength: 1
+        type: string
+    type: object
+  handlers.UpdateTagRequest:
+    properties:
+      color:
+        example: '#33FF57'
+        type: string
+      name:
+        example: Updated Tag
+        type: string
+    type: object
+  handlers.UpdateTaskRequest:
+    properties:
+      completed:
+        example: true
+        type: boolean
+      description:
+        example: Updated description
+        type: string
+      due_date:
+        example: "2024-12-31T23:59:59Z"
+        type: string
+      priority:
+        enum:
+        - baixa
+        - media
+        - alta
+        - urgente
+        example: urgente
+        type: string
+      tag_ids:
+        description: 'Optional: nil = no change, [] = remove all, [1,2] = set tags'
+        items:
+          type: integer
+        type: array
+      title:
+        example: Updated title
+        type: string
+      type:
+        allOf:
+        - $ref: '#/definitions/models.TaskType'
+        enum:
+        - casa
+        - trabalho
+        - lazer
+        - saude
+        example: trabalho
+    type: object
+  models.Comment:
+    properties:
+      content:
+        description: Comment text
+        type: string
+      created_at:
+        type: string
+      id:
+        type: integer
+      task:
+        $ref: '#/definitions/models.Task'
+      task_id:
+        description: ID of the task this comment belongs to
+        type: integer
+      updated_at:
+        type: string
+      user:
+        $ref: '#/definitions/models.User'
+      user_id:
+        description: ID of the user who created the comment
+        type: integer
+    type: object
+  models.Priority:
+    enum:
+    - baixa
+    - media
+    - alta
+    - urgente
+    type: string
+    x-enum-varnames:
+    - PriorityBaixa
+    - PriorityMedia
+    - PriorityAlta
+    - PriorityUrgente
+  models.Tag:
+    properties:
+      color:
+        description: 'Hex color code (e.g., #FF5733)'
+        type: string
+      created_at:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      tasks:
+        items:
+          $ref: '#/definitions/models.Task'
+        type: array
+      updated_at:
+        type: string
+      user:
+        $ref: '#/definitions/models.User'
+      user_id:
+        description: Tags are user-specific
+        type: integer
+    type: object
+  models.Task:
+    properties:
+      assigned_by:
+        description: ID of the user who created/assigned the task (nil if created
+          by the user themselves)
+        type: integer
+      assigned_by_user:
+        $ref: '#/definitions/models.User'
+      comments:
+        description: Comments on the task
+        items:
+          $ref: '#/definitions/models.Comment'
+        type: array
+      completed:
+        type: boolean
+      created_at:
+        type: string
+      description:
+        type: string
+      due_date:
+        description: Deadline for task completion
+        type: string
+      id:
+        type: integer
+      priority:
+        allOf:
+        - $ref: '#/definitions/models.Priority'
+        description: Task priority
+      tags:
+        description: Tags associated with the task
+        items:
+          $ref: '#/definitions/models.Tag'
+        type: array
+      title:
+        type: string
+      type:
+        $ref: '#/definitions/models.TaskType'
+      updated_at:
+        type: string
+      user:
+        $ref: '#/definitions/models.User'
+      user_id:
+        description: ID of the user responsible for the task
+        type: integer
+    type: object
+  models.TaskType:
+    enum:
+    - casa
+    - trabalho
+    - lazer
+    - saude
+    type: string
+    x-enum-varnames:
+    - TaskTypeCasa
+    - TaskTypeTrabalho
+    - TaskTypeLazer
+    - TaskTypeSaude
+  models.User:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: integer
+      updated_at:
+        type: string
+      username:
+        type: string
+    type: object
+  services.PaginatedTasksResponse:
+    properties:
+      limit:
+        type: integer
+      page:
+        type: integer
+      tasks:
+        items:
+          $ref: '#/definitions/models.Task'
+        type: array
+      total:
+        type: integer
+      total_pages:
+        type: integer
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: support@example.com
+    name: API Support
+  description: A RESTful API for managing tasks with JWT authentication and user task
+    assignment
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  termsOfService: http://swagger.io/terms/
+  title: Todo API
+  version: "1.0"
+paths:
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticates a user by username or email and returns a JWT token.
+        The username field accepts either username or email address.
+      parameters:
+      - description: User login credentials. The 'username' field accepts either username
+          (e.g., 'johndoe') or email address (e.g., 'john@example.com').
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.AuthResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      summary: Login user
+      tags:
+      - auth
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Creates a new user account and returns a JWT token
+      parameters:
+      - description: User registration data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/handlers.AuthResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      summary: Register a new user
+      tags:
+      - auth
+  /comments:
+    post:
+      consumes:
+      - application/json
+      description: Creates a new comment on a task. User must own the task or have
+        assigned it.
+      parameters:
+      - description: Comment creation data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.CreateCommentRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.Comment'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a comment on a task
+      tags:
+      - comments
+  /comments/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Deletes a comment by its ID. Only the comment author can delete
+        it.
+      parameters:
+      - description: Comment ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete a comment
+      tags:
+      - comments
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a specific comment by its ID
+      parameters:
+      - description: Comment ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Comment'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get a comment by ID
+      tags:
+      - comments
+    put:
+      consumes:
+      - application/json
+      description: Updates an existing comment. Only the comment author can update
+        it.
+      parameters:
+      - description: Comment ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Comment update data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.UpdateCommentRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Comment'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update a comment
+      tags:
+      - comments
+  /tags:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves all tags for the authenticated user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Tag'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List user tags
+      tags:
+      - tags
+    post:
+      consumes:
+      - application/json
+      description: Creates a new custom tag for the authenticated user
+      parameters:
+      - description: Tag creation data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.CreateTagRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.Tag'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a new tag
+      tags:
+      - tags
+  /tags/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Deletes a tag by its ID
+      parameters:
+      - description: Tag ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete a tag
+      tags:
+      - tags
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a specific tag by its ID
+      parameters:
+      - description: Tag ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Tag'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get a tag by ID
+      tags:
+      - tags
+    put:
+      consumes:
+      - application/json
+      description: Updates an existing tag
+      parameters:
+      - description: Tag ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Tag update data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.UpdateTagRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Tag'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update a tag
+      tags:
+      - tags
+  /tasks:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves paginated tasks for the authenticated user with optional
+        filters, search, and sorting
+      parameters:
+      - description: 'Page number (default: 1)'
+        in: query
+        name: page
+        type: integer
+      - description: 'Items per page (default: 10, max: 100)'
+        in: query
+        name: limit
+        type: integer
+      - description: Filter by task type (casa, trabalho, lazer, saude)
+        in: query
+        name: type
+        type: string
+      - description: Filter by completion status
+        in: query
+        name: completed
+        type: boolean
+      - description: Search in title and description
+        in: query
+        name: search
+        type: string
+      - description: Filter tasks with due date from (ISO 8601 format)
+        in: query
+        name: due_date_from
+        type: string
+      - description: Filter tasks with due date to (ISO 8601 format)
+        in: query
+        name: due_date_to
+        type: string
+      - description: Filter by period (overdue, today, this_week, this_month)
+        in: query
+        name: period
+        type: string
+      - description: Filter by user ID who assigned the task
+        in: query
+        name: assigned_by
+        type: integer
+      - description: Sort field (created_at, due_date, title)
+        in: query
+        name: sort_by
+        type: string
+      - description: Sort order (asc, desc)
+        in: query
+        name: order
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/services.PaginatedTasksResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: List user tasks
+      tags:
+      - tasks
+    post:
+      consumes:
+      - application/json
+      description: Creates a new task for the authenticated user or assigns it to
+        another user
+      parameters:
+      - description: Task creation data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.CreateTaskRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.Task'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create a new task
+      tags:
+      - tasks
+  /tasks/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Deletes a task by its ID
+      parameters:
+      - description: Task ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete a task
+      tags:
+      - tasks
+    get:
+      consumes:
+      - application/json
+      description: Retrieves a specific task by its ID
+      parameters:
+      - description: Task ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Task'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get a task by ID
+      tags:
+      - tasks
+    put:
+      consumes:
+      - application/json
+      description: Updates an existing task
+      parameters:
+      - description: Task ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Task update data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.UpdateTaskRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Task'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update a task
+      tags:
+      - tasks
+  /tasks/{id}/comments:
+    get:
+      consumes:
+      - application/json
+      description: Retrieves all comments for a specific task. User must own the task
+        or have assigned it.
+      parameters:
+      - description: Task ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Comment'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get comments for a task
+      tags:
+      - comments
+securityDefinitions:
+  BearerAuth:
+    description: Type "Bearer" followed by a space and JWT token.
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
