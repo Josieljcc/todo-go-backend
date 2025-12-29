@@ -35,7 +35,7 @@ services:
       PORT: ${PORT:-8080}
       JWT_SECRET: ${JWT_SECRET:-your-secret-key-change-in-production}
       DATABASE_HOST: mysql
-      DATABASE_PORT: ${MYSQL_PORT:-3306}
+      DATABASE_PORT: ${MYSQL_PORT:-3305}
       DATABASE_USER: ${MYSQL_USER:-todo_user}
       DATABASE_PASSWORD: ${MYSQL_PASSWORD:-todo_password}
       DATABASE_NAME: ${MYSQL_DATABASE:-todo_db}
