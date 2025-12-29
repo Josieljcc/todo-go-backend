@@ -11,7 +11,7 @@ services:
       MYSQL_USER: ${MYSQL_USER:-todo_user}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD:-todo_password}
     ports:
-      - "${MYSQL_PORT:-3306}:3306"
+      - "${MYSQL_PORT:-3305}:3305"
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
@@ -30,9 +30,9 @@ services:
       dockerfile: Dockerfile
     container_name: todo-api
     ports:
-      - "${PORT:-8080}:8080"
+      - "${PORT:-3002}:3002"
     environment:
-      PORT: ${PORT:-8080}
+      PORT: ${PORT:-3002}
       JWT_SECRET: ${JWT_SECRET:-your-secret-key-change-in-production}
       DATABASE_HOST: mysql
       DATABASE_PORT: ${MYSQL_PORT:-3305}
