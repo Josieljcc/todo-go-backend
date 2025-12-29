@@ -21,6 +21,8 @@ package main
 
 import (
 	"log"
+	"os"
+	"path/filepath"
 	_ "todo-go-backend/docs" // Swagger documentation
 	"todo-go-backend/internal/config"
 	"todo-go-backend/internal/database"
@@ -107,6 +109,57 @@ func main() {
 
 	// Swagger documentation
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
+	// Serve swagger.json and swagger.yaml directly for openapi-typescript
+	// Try multiple paths to work both locally and in Docker
+	router.GET("/swagger/swagger.json", func(c *gin.Context) {
+		// Try different possible paths (local dev and Docker)
+		possiblePaths := []string{
+			filepath.Join("docs", "swagger.json"),
+			filepath.Join(".", "docs", "swagger.json"),
+			filepath.Join("/root", "docs", "swagger.json"),
+		}
+
+		var data []byte
+		var err error
+		for _, path := range possiblePaths {
+			data, err = os.ReadFile(path)
+			if err == nil {
+				break
+			}
+		}
+
+		if err != nil {
+			// Fallback: redirect to the default swagger doc endpoint
+			c.Redirect(302, "/swagger/doc.json")
+			return
+		}
+		c.Data(200, "application/json", data)
+	})
+
+	router.GET("/swagger/swagger.yaml", func(c *gin.Context) {
+		// Try different possible paths (local dev and Docker)
+		possiblePaths := []string{
+			filepath.Join("docs", "swagger.yaml"),
+			filepath.Join(".", "docs", "swagger.yaml"),
+			filepath.Join("/root", "docs", "swagger.yaml"),
+		}
+
+		var data []byte
+		var err error
+		for _, path := range possiblePaths {
+			data, err = os.ReadFile(path)
+			if err == nil {
+				break
+			}
+		}
+
+		if err != nil {
+			c.JSON(404, gin.H{"error": "swagger.yaml not found. The file may not be available in this environment. Try using /swagger/swagger.json or /swagger/doc.json instead."})
+			return
+		}
+		c.Data(200, "application/x-yaml", data)
+	})
 
 	// Public routes
 	api := router.Group("/api/v1")
