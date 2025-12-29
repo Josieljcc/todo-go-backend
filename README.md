@@ -11,15 +11,26 @@ API RESTful para gerenciamento de tarefas desenvolvida em Go, com autenticação
 - ✅ Tempo de realização (due_date) para cada tarefa
 - ✅ Usuários podem criar tarefas para outros usuários
 - ✅ Filtros por tipo e status de conclusão
+- ✅ Sistema de Tags para categorizar tarefas
+- ✅ Comentários em tarefas
+- ✅ Notificações por Email e Telegram
+- ✅ Health check endpoint
+- ✅ CORS configurável
+- ✅ Suporte a MySQL e SQLite
+- ✅ Cloudflare Tunnel integrado (exposição segura da API)
 
 ## Tecnologias
 
 - **Go 1.21+**
 - **Gin** - Framework web
 - **GORM** - ORM para banco de dados
-- **SQLite** - Banco de dados (pode ser facilmente trocado por PostgreSQL/MySQL)
+- **SQLite/MySQL** - Banco de dados (suporte a ambos)
 - **JWT-Go** - Autenticação JWT
 - **Bcrypt** - Hash de senhas
+- **Swagger/OpenAPI** - Documentação da API
+- **Docker & Docker Compose** - Containerização
+- **GitHub Actions** - CI/CD Pipeline
+- **Cloudflare Tunnel** - Exposição segura da API
 
 ## Estrutura do Projeto
 
@@ -35,13 +46,20 @@ todo-go-backend/
 │   ├── database/                # Conexão e setup do banco de dados
 │   ├── errors/                  # Erros customizados da aplicação
 │   ├── handlers/                # Handlers HTTP (camada de apresentação)
-│   ├── middleware/              # Middlewares (autenticação, etc)
+│   ├── middleware/              # Middlewares (autenticação, CORS)
 │   ├── models/                  # Modelos de dados (entidades)
+│   ├── notifications/           # Sistema de notificações (Email, Telegram)
 │   ├── repositories/            # Camada de acesso a dados (Repository Pattern)
 │   └── services/                # Camada de lógica de negócio (Service Layer)
 ├── pkg/
 │   └── utils/                   # Utilitários (JWT, password hashing)
-└── go.mod
+├── docs/                        # Documentação Swagger/OpenAPI
+├── .github/
+│   └── workflows/               # Pipelines CI/CD (GitHub Actions)
+├── docker-compose.yml           # Configuração Docker Compose
+├── Dockerfile                    # Imagem Docker da aplicação
+├── env.example                  # Exemplo de variáveis de ambiente
+└── go.mod                       # Dependências do projeto
 ```
 
 ### Arquitetura
@@ -194,6 +212,137 @@ DELETE /api/v1/tasks/:id
 Authorization: Bearer <token>
 ```
 
+### Tags (Requer autenticação)
+
+#### Criar tag
+```http
+POST /api/v1/tags
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "name": "urgente",
+  "color": "#FF0000"
+}
+```
+
+#### Listar tags
+```http
+GET /api/v1/tags
+Authorization: Bearer <token>
+```
+
+#### Obter tag específica
+```http
+GET /api/v1/tags/:id
+Authorization: Bearer <token>
+```
+
+#### Atualizar tag
+```http
+PUT /api/v1/tags/:id
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "name": "importante",
+  "color": "#00FF00"
+}
+```
+
+#### Deletar tag
+```http
+DELETE /api/v1/tags/:id
+Authorization: Bearer <token>
+```
+
+### Comentários (Requer autenticação)
+
+#### Criar comentário
+```http
+POST /api/v1/comments
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "content": "Este é um comentário na tarefa",
+  "task_id": 1
+}
+```
+
+#### Listar comentários de uma tarefa
+```http
+GET /api/v1/tasks/:id/comments
+Authorization: Bearer <token>
+```
+
+#### Obter comentário específico
+```http
+GET /api/v1/comments/:id
+Authorization: Bearer <token>
+```
+
+#### Atualizar comentário
+```http
+PUT /api/v1/comments/:id
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "content": "Comentário atualizado"
+}
+```
+
+#### Deletar comentário
+```http
+DELETE /api/v1/comments/:id
+Authorization: Bearer <token>
+```
+
+### Notificações (Requer autenticação)
+
+#### Configurar Telegram Chat ID
+```http
+PUT /api/v1/users/telegram-chat-id
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "telegram_chat_id": "123456789"
+}
+```
+
+#### Habilitar/Desabilitar notificações
+```http
+PUT /api/v1/users/notifications-enabled
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "notifications_enabled": true
+}
+```
+
+#### Testar notificações
+```http
+POST /api/v1/notifications/test
+Authorization: Bearer <token>
+```
+
+### Health Check
+
+#### Verificar saúde da API
+```http
+GET /health
+```
+
+**Resposta:**
+```json
+{
+  "status": "ok"
+}
+```
+
 ## Exemplos de Uso
 
 ### Criar tarefa para outro usuário
@@ -232,7 +381,14 @@ Para ver cobertura:
 go test -cover ./...
 ```
 
-**Nota**: Os testes que utilizam SQLite requerem CGO habilitado. Se você encontrar erros relacionados ao CGO, certifique-se de que o CGO está habilitado no seu ambiente Go.
+### Configuração de Testes
+
+Os testes suportam tanto MySQL quanto SQLite:
+
+- **MySQL (CI)**: Configure as variáveis de ambiente `DATABASE_HOST`, `DATABASE_PORT`, `DATABASE_USER`, `DATABASE_PASSWORD`, `DATABASE_NAME`
+- **SQLite (Local)**: Requer CGO habilitado (`CGO_ENABLED=1`)
+
+**Nota**: Os testes que utilizam SQLite requerem CGO habilitado. Se você encontrar erros relacionados ao CGO, certifique-se de que o CGO está habilitado no seu ambiente Go ou configure MySQL.
 
 Para executar testes específicos:
 
@@ -240,6 +396,10 @@ Para executar testes específicos:
 go test ./internal/services/... -v
 go test ./internal/handlers/... -v
 ```
+
+### Testes na CI
+
+A pipeline de CI usa MySQL automaticamente. Os testes são executados automaticamente em cada push e pull request.
 
 ## Variáveis de Ambiente
 
@@ -253,6 +413,22 @@ go test ./internal/handlers/... -v
 | `DATABASE_USER` | Usuário do MySQL | - |
 | `DATABASE_PASSWORD` | Senha do MySQL | - |
 | `DATABASE_NAME` | Nome do banco de dados MySQL | - |
+| `CORS_ALLOWED_ORIGINS` | Origens permitidas CORS (separadas por vírgula) | `*` |
+| `CORS_ALLOWED_METHODS` | Métodos HTTP permitidos | `GET,POST,PUT,DELETE,OPTIONS,PATCH` |
+| `CORS_ALLOWED_HEADERS` | Headers permitidos | `Content-Type,Authorization,Accept,Origin` |
+| `CORS_ALLOW_CREDENTIALS` | Permitir credenciais | `true` |
+| `CORS_MAX_AGE` | Max age para preflight requests (segundos) | `3600` |
+| `NOTIFICATIONS_ENABLED` | Habilitar notificações | `true` |
+| `NOTIFICATION_CHECK_INTERVAL` | Intervalo de verificação (cron) | `0 * * * *` |
+| `SMTP_HOST` | Host SMTP para email | - |
+| `SMTP_PORT` | Porta SMTP | `587` |
+| `SMTP_USER` | Usuário SMTP | - |
+| `SMTP_PASSWORD` | Senha SMTP | - |
+| `SMTP_FROM` | Email remetente | - |
+| `TELEGRAM_BOT_TOKEN` | Token do bot Telegram | - |
+| `CLOUDFLARE_TUNNEL_TOKEN` | Token do Cloudflare Tunnel | - |
+
+Veja o arquivo `env.example` para um exemplo completo de configuração.
 
 ## Swagger Documentation
 
@@ -272,27 +448,49 @@ swag init -g cmd/api/main.go
 
 ### Using Docker Compose
 
-The easiest way to run the application is using Docker Compose, which will start both the API and MySQL database:
+The easiest way to run the application is using Docker Compose, which will start the API, MySQL database, and Cloudflare Tunnel:
 
 ```bash
 # Build and start containers
-docker-compose up -d
+docker compose up -d
 
 # View logs
-docker-compose logs -f api
+docker compose logs -f api
+
+# View Cloudflare Tunnel logs
+docker compose logs -f cloudflare
 
 # Stop containers
-docker-compose down
+docker compose down
 
 # Stop and remove volumes (clean database)
-docker-compose down -v
+docker compose down -v
 ```
 
 The API will be available at `http://localhost:8080` and MySQL at `localhost:3306`.
 
+### Cloudflare Tunnel
+
+The docker-compose configuration includes a Cloudflare Tunnel service that automatically exposes your API through Cloudflare's network. This allows you to:
+
+- Access your API from anywhere without exposing ports directly
+- Benefit from Cloudflare's DDoS protection and CDN
+- Use Cloudflare's authentication and access policies
+
+To use the Cloudflare Tunnel:
+
+1. Get your tunnel token from the [Cloudflare Zero Trust dashboard](https://one.dash.cloudflare.com/)
+2. Add it to your `.env` file:
+   ```env
+   CLOUDFLARE_TUNNEL_TOKEN=your-tunnel-token-here
+   ```
+3. The tunnel will start automatically when you run `docker compose up -d`
+
+**Note**: The Cloudflare Tunnel container will only start if `CLOUDFLARE_TUNNEL_TOKEN` is set. If you don't need the tunnel, you can comment out the `cloudflare` service in `docker-compose.yml` or simply not set the token.
+
 ### Environment Variables for Docker
 
-You can create a `.env` file in the root directory with the following variables:
+You can create a `.env` file in the root directory. See `env.example` for all available variables:
 
 ```env
 PORT=8080
@@ -303,6 +501,13 @@ DATABASE_USER=todo_user
 DATABASE_PASSWORD=todo_password
 DATABASE_NAME=todo_db
 MYSQL_ROOT_PASSWORD=root_password
+MYSQL_DATABASE=todo_db
+MYSQL_USER=todo_user
+MYSQL_PASSWORD=todo_password
+MYSQL_PORT=3306
+
+# Cloudflare Tunnel (optional)
+CLOUDFLARE_TUNNEL_TOKEN=your-cloudflare-tunnel-token
 ```
 
 ### Building Docker Image Manually
@@ -321,6 +526,37 @@ docker run -p 8080:8080 \
   todo-api
 ```
 
+## CI/CD
+
+O projeto inclui pipelines de CI/CD usando GitHub Actions:
+
+### Pipeline de Testes (CI)
+
+- Executa automaticamente em push e pull requests
+- Roda todos os testes usando MySQL
+- Verifica se o código compila
+- Localização: `.github/workflows/ci.yml`
+
+### Pipeline de Deploy (CD)
+
+- Deploy automático para Raspberry Pi usando runner self-hosted
+- Build e deploy com Docker Compose
+- Health check automático após deploy
+- Localização: `.github/workflows/deploy.yml`
+
+### Configuração do Runner Self-Hosted
+
+Para configurar o runner na Raspberry Pi, veja a documentação em `RASPBERRY_PI_SETUP.md` (se disponível) ou siga a [documentação oficial do GitHub Actions](https://docs.github.com/en/actions/hosting-your-own-runners).
+
+## Notificações
+
+A API suporta notificações por Email e Telegram. Veja os arquivos de documentação:
+
+- `NOTIFICATIONS_SETUP.md` - Configuração de notificações
+- `TELEGRAM_CHAT_ID_GUIDE.md` - Como obter o Chat ID do Telegram
+- `TEST_NOTIFICATIONS.md` - Como testar notificações
+- `TROUBLESHOOTING_NOTIFICATIONS.md` - Solução de problemas
+
 ## Roadmap
 
 Para ver o plano completo de melhorias futuras, consulte o arquivo [ROADMAP.md](./ROADMAP.md).
@@ -329,15 +565,39 @@ Para ver o plano completo de melhorias futuras, consulte o arquivo [ROADMAP.md](
 
 - [ ] Paginação nas listagens
 - [ ] Busca por texto nas tarefas
-- [ ] Notificações de tarefas próximas do vencimento
+- [x] Notificações de tarefas próximas do vencimento
 - [x] Suporte a múltiplos bancos de dados (SQLite, MySQL)
 - [x] Documentação Swagger/OpenAPI
 - [x] Docker e Docker Compose
+- [x] CI/CD Pipeline
+- [x] Sistema de Tags
+- [x] Comentários em tarefas
+- [x] Health check endpoint
+- [x] CORS configurável
 - [ ] Rate limiting
 - [ ] Logs estruturados
 - [ ] Cache com Redis
 - [ ] Refresh tokens
-- [ ] CI/CD Pipeline
+
+## Documentação Adicional
+
+- [ROADMAP.md](./ROADMAP.md) - Plano de melhorias futuras
+- [NOTIFICATIONS_SETUP.md](./NOTIFICATIONS_SETUP.md) - Guia de configuração de notificações
+- [TELEGRAM_CHAT_ID_GUIDE.md](./TELEGRAM_CHAT_ID_GUIDE.md) - Como obter o Chat ID do Telegram
+- [TEST_NOTIFICATIONS.md](./TEST_NOTIFICATIONS.md) - Como testar notificações
+- [TROUBLESHOOTING_NOTIFICATIONS.md](./TROUBLESHOOTING_NOTIFICATIONS.md) - Solução de problemas com notificações
+
+## Contribuindo
+
+Contribuições são bem-vindas! Por favor:
+
+1. Faça um fork do projeto
+2. Crie uma branch para sua feature (`git checkout -b feature/AmazingFeature`)
+3. Commit suas mudanças (`git commit -m 'Add some AmazingFeature'`)
+4. Push para a branch (`git push origin feature/AmazingFeature`)
+5. Abra um Pull Request
+
+Certifique-se de que os testes passem antes de submeter o PR.
 
 ## Licença
 

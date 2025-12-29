@@ -63,6 +63,19 @@ services:
       - todo-network
     restart: unless-stopped
 
+  # Cloudflare Tunnel
+  cloudflare:
+    image: cloudflare/cloudflared:latest
+    container_name: todo-cloudflare
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN}
+    networks:
+      - todo-network
+    restart: unless-stopped
+    depends_on:
+      - api
+
 volumes:
   mysql_data:
 
