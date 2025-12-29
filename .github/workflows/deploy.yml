@@ -63,25 +63,140 @@ jobs:
       - name: Wait for services to be healthy
         run: |
           echo "Waiting for services to start..."
-          sleep 10
+          echo "Initial container status:"
           docker compose ps
+
+          # Aguardar containers iniciarem
+          echo "Waiting for containers to be ready..."
+          for i in {1..30}; do
+            if docker compose ps | grep -q "todo-api.*Up"; then
+              echo "Container todo-api is up!"
+              break
+            fi
+            echo "Waiting... ($i/30)"
+            sleep 2
+          done
+
+          sleep 5
+          echo ""
+          echo "Final container status:"
+          docker compose ps
+          echo ""
+          echo "Checking if containers are running:"
+          docker ps --filter "name=todo-api" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+          echo ""
+          echo "Checking if MySQL is ready:"
+          docker compose exec -T mysql mysqladmin ping -h localhost -u root -p${{ secrets.MYSQL_ROOT_PASSWORD }} || echo "MySQL not ready yet"
+          echo ""
+          echo "Checking API container logs (last 20 lines):"
+          docker compose logs api --tail=20
 
       - name: Check API health
         run: |
-          echo "Checking API health..."
-          max_attempts=30
+          echo "=== Checking API health ==="
+          PORT=${{ secrets.PORT || '8080' }}
+          max_attempts=50
           attempt=0
-          while [ $attempt -lt $max_attempts ]; do
-            if curl -f http://localhost:${{ secrets.PORT || '8080' }}/health; then
-              echo "API is healthy!"
-              exit 0
+
+          echo "Target: http://localhost:$PORT/health"
+          echo "Max attempts: $max_attempts"
+          echo ""
+
+          # Verificar se o container está rodando
+          if ! docker ps --format "{{.Names}}" | grep -q "todo-api"; then
+            echo "❌ ERROR: Container todo-api is not running!"
+            docker compose ps
+            exit 1
+          fi
+
+          # Verificar se a aplicação iniciou (procurar por mensagem de log)
+          echo "Waiting for application to start (checking logs)..."
+          for i in {1..20}; do
+            if docker compose logs api 2>&1 | grep -q "Server starting"; then
+              echo "Application startup detected in logs"
+              break
             fi
+            sleep 1
+          done
+
+          # Aguardar um pouco mais para garantir que está totalmente iniciado
+          sleep 5
+          echo ""
+
+          while [ $attempt -lt $max_attempts ]; do
             attempt=$((attempt + 1))
-            echo "Attempt $attempt/$max_attempts - waiting for API..."
+            echo "Attempt $attempt/$max_attempts..."
+            
+            # Tentar curl primeiro
+            if command -v curl >/dev/null 2>&1; then
+              response=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 --connect-timeout 5 http://localhost:$PORT/health 2>/dev/null || echo "000")
+              if [ "$response" = "200" ]; then
+                echo ""
+                echo "✅ API is healthy! (HTTP $response)"
+                echo "Response:"
+                curl -s http://localhost:$PORT/health
+                echo ""
+                exit 0
+              else
+                echo "  Response code: $response"
+              fi
+            # Tentar wget como fallback
+            elif command -v wget >/dev/null 2>&1; then
+              if wget -q -O - --timeout=10 --tries=1 http://localhost:$PORT/health >/dev/null 2>&1; then
+                echo ""
+                echo "✅ API is healthy! (wget success)"
+                echo "Response:"
+                wget -q -O - http://localhost:$PORT/health
+                echo ""
+                exit 0
+              fi
+            # Tentar via docker exec como último recurso
+            else
+              if docker compose exec -T api wget -q -O - --timeout=10 http://localhost:$PORT/health >/dev/null 2>&1 || \
+                 docker compose exec -T api curl -f -s --max-time 10 http://localhost:$PORT/health >/dev/null 2>&1; then
+                echo ""
+                echo "✅ API is healthy! (checked via docker exec)"
+                exit 0
+              fi
+            fi
+            
+            # Verificar se o container ainda está rodando
+            if ! docker ps --format "{{.Names}}" | grep -q "todo-api"; then
+              echo "❌ ERROR: Container todo-api stopped!"
+              docker compose ps
+              exit 1
+            fi
+            
+            # Mostrar logs a cada 10 tentativas
+            if [ $((attempt % 10)) -eq 0 ]; then
+              echo "  Container still running, checking logs..."
+              docker compose logs api --tail=5
+            fi
+            
             sleep 2
           done
-          echo "API health check failed after $max_attempts attempts"
-          docker compose logs api
+
+          echo ""
+          echo "❌ API health check failed after $max_attempts attempts"
+          echo ""
+          echo "=== Container Status ==="
+          docker compose ps
+          echo ""
+          echo "=== API Container Logs (last 100 lines) ==="
+          docker compose logs api --tail=100
+          echo ""
+          echo "=== Port Mapping ==="
+          docker compose port api $PORT || echo "Port mapping check failed"
+          echo ""
+          echo "=== Network Inspection ==="
+          docker inspect todo-api --format='Status: {{.State.Status}}' 2>/dev/null || echo "Inspection failed"
+          echo ""
+          echo "=== Trying alternative check methods ==="
+          # Tentar verificar se a porta está aberta
+          if command -v nc >/dev/null 2>&1; then
+            echo "Testing port with netcat:"
+            nc -zv localhost $PORT || echo "Port not accessible via netcat"
+          fi
           exit 1
 
       - name: Show running containers

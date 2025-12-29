@@ -3,6 +3,7 @@ package handlers
 import (
 	"fmt"
 	"os"
+	"time"
 	"todo-go-backend/internal/database"
 	"todo-go-backend/internal/middleware"
 	"todo-go-backend/internal/models"
@@ -31,17 +32,32 @@ func setupTestDB() *gorm.DB {
 
 	if dbHost != "" && dbPort != "" && dbUser != "" && dbPassword != "" && dbName != "" {
 		// Usar MySQL (como na pipeline CI)
+		// Adicionar parâmetros para melhorar robustez da conexão
 		dsn := fmt.Sprintf(
-			"%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
+			"%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local&timeout=10s&readTimeout=10s&writeTimeout=10s",
 			dbUser,
 			dbPassword,
 			dbHost,
 			dbPort,
 			dbName,
 		)
-		db, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
+		
+		// Tentar conectar com retry
+		var lastErr error
+		for i := 0; i < 5; i++ {
+			db, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
+			if err == nil {
+				break
+			}
+			lastErr = err
+			if i < 4 {
+				// Aguardar antes de tentar novamente (exponencial backoff)
+				time.Sleep(time.Duration(i+1) * time.Second)
+			}
+		}
+		
 		if err != nil {
-			panic("Failed to connect to MySQL test database: " + err.Error())
+			panic(fmt.Sprintf("Failed to connect to MySQL test database after 5 attempts: %v", lastErr))
 		}
 	} else {
 		// Tentar usar SQLite (requer CGO habilitado)
@@ -67,6 +83,29 @@ func setupTestDB() *gorm.DB {
 	err = db.AutoMigrate(&models.User{}, &models.Task{}, &models.Tag{}, &models.Comment{}, &models.Notification{})
 	if err != nil {
 		panic("Failed to migrate test database: " + err.Error())
+	}
+
+	// Limpar dados existentes para garantir testes isolados
+	// Isso é especialmente importante quando usando MySQL compartilhado na CI
+	// Verificar se é MySQL ou SQLite
+	if dbHost != "" {
+		// MySQL - desabilitar foreign keys temporariamente
+		db.Exec("SET FOREIGN_KEY_CHECKS = 0")
+		db.Exec("TRUNCATE TABLE notifications")
+		db.Exec("TRUNCATE TABLE comments")
+		db.Exec("TRUNCATE TABLE task_tags")
+		db.Exec("TRUNCATE TABLE tasks")
+		db.Exec("TRUNCATE TABLE tags")
+		db.Exec("TRUNCATE TABLE users")
+		db.Exec("SET FOREIGN_KEY_CHECKS = 1")
+	} else {
+		// SQLite - usar DELETE (TRUNCATE não funciona em SQLite)
+		db.Exec("DELETE FROM notifications")
+		db.Exec("DELETE FROM comments")
+		db.Exec("DELETE FROM task_tags")
+		db.Exec("DELETE FROM tasks")
+		db.Exec("DELETE FROM tags")
+		db.Exec("DELETE FROM users")
 	}
 
 	database.DB = db

@@ -13,7 +13,7 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    
+
     services:
       mysql:
         image: mysql:8.0
@@ -37,7 +37,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.21'
+          go-version: "1.21"
 
       - name: Cache Go modules
         uses: actions/cache@v4
@@ -50,6 +50,54 @@ jobs:
       - name: Download dependencies
         run: go mod download
 
+      - name: Wait for MySQL to be ready
+        run: |
+          echo "Waiting for MySQL to be ready..."
+          # Instalar cliente MySQL se necessário
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq default-mysql-client || sudo apt-get install -y -qq mysql-client || echo "MySQL client not available, using alternative check"
+
+          # Aguardar MySQL estar pronto usando diferentes métodos
+          for i in {1..60}; do
+            # Tentar ping do MySQL
+            if command -v mysqladmin >/dev/null 2>&1; then
+              if mysqladmin ping -h localhost -u todo_user -ptodo_password --silent 2>/dev/null || \
+                 mysqladmin ping -h 127.0.0.1 -u todo_user -ptodo_password --silent 2>/dev/null; then
+                echo "MySQL is ready! (via mysqladmin)"
+                break
+              fi
+            fi
+            
+            # Tentar conexão direta
+            if command -v mysql >/dev/null 2>&1; then
+              if mysql -h localhost -u todo_user -ptodo_password -e "SELECT 1;" 2>/dev/null || \
+                 mysql -h 127.0.0.1 -u todo_user -ptodo_password -e "SELECT 1;" 2>/dev/null; then
+                echo "MySQL is ready! (via mysql client)"
+                break
+              fi
+            fi
+            
+            # Tentar conexão TCP simples
+            if timeout 1 bash -c "echo > /dev/tcp/localhost/3306" 2>/dev/null; then
+              echo "MySQL port is open, waiting a bit more for full initialization..."
+              sleep 2
+              if [ $i -gt 10 ]; then
+                echo "MySQL port is open, proceeding with tests..."
+                break
+              fi
+            fi
+            
+            if [ $i -eq 60 ]; then
+              echo "MySQL readiness check timeout, but proceeding with tests..."
+              break
+            fi
+            
+            echo "Waiting for MySQL... ($i/60)"
+            sleep 2
+          done
+
+          echo "MySQL readiness check completed"
+
       - name: Run tests
         env:
           DATABASE_HOST: localhost
@@ -58,9 +106,14 @@ jobs:
           DATABASE_PASSWORD: todo_password
           DATABASE_NAME: todo_db
           JWT_SECRET: test-secret-key
-        run: go test -v ./...
+        run: |
+          echo "Running tests with MySQL connection..."
+          echo "DATABASE_HOST=$DATABASE_HOST"
+          echo "DATABASE_PORT=$DATABASE_PORT"
+          echo "DATABASE_USER=$DATABASE_USER"
+          echo "DATABASE_NAME=$DATABASE_NAME"
+          go test -v ./...
 
       - name: Build application
         run: |
           go build -o api ./cmd/api
-
