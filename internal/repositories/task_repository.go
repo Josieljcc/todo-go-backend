@@ -1,0 +1,158 @@
+package repositories
+
+import (
+	"time"
+	"todo-go-backend/internal/database"
+	"todo-go-backend/internal/models"
+)
+
+// TaskRepository defines the interface for task operations
+type TaskRepository interface {
+	Create(task *models.Task) error
+	FindByID(id uint) (*models.Task, error)
+	FindByUserID(userID uint, filters *TaskFilters) ([]models.Task, int64, error)
+	Update(task *models.Task) error
+	Delete(id uint) error
+	Exists(id uint) (bool, error)
+}
+
+// TaskFilters defines filters for task search
+type TaskFilters struct {
+	Type         *models.TaskType
+	Completed    *bool
+	Priority     *models.Priority
+	Search       *string // Search in title and description
+	DueDateFrom  *time.Time
+	DueDateTo    *time.Time
+	AssignedBy   *uint
+	TagIDs       []uint  // Filter by tag IDs
+	Page         int
+	Limit        int
+	SortBy       string // created_at, due_date, title, priority
+	Order        string // asc, desc
+}
+
+type taskRepository struct{}
+
+// NewTaskRepository creates a new instance of TaskRepository
+func NewTaskRepository() TaskRepository {
+	return &taskRepository{}
+}
+
+func (r *taskRepository) Create(task *models.Task) error {
+	return database.DB.Create(task).Error
+}
+
+func (r *taskRepository) FindByID(id uint) (*models.Task, error) {
+	var task models.Task
+	if err := database.DB.
+		Preload("User").
+		Preload("AssignedByUser").
+		Preload("Tags").
+		First(&task, id).Error; err != nil {
+		return nil, err
+	}
+	return &task, nil
+}
+
+func (r *taskRepository) FindByUserID(userID uint, filters *TaskFilters) ([]models.Task, int64, error) {
+	var tasks []models.Task
+	var total int64
+
+	// Base query
+	query := database.DB.Model(&models.Task{}).Where("user_id = ?", userID)
+
+	// Apply filters
+	if filters != nil {
+		if filters.Type != nil {
+			query = query.Where("type = ?", *filters.Type)
+		}
+		if filters.Completed != nil {
+			query = query.Where("completed = ?", *filters.Completed)
+		}
+		if filters.Priority != nil {
+			query = query.Where("priority = ?", *filters.Priority)
+		}
+		if filters.Search != nil && *filters.Search != "" {
+			searchPattern := "%" + *filters.Search + "%"
+			query = query.Where("(title LIKE ? OR description LIKE ?)", searchPattern, searchPattern)
+		}
+		if filters.DueDateFrom != nil {
+			query = query.Where("due_date >= ?", *filters.DueDateFrom)
+		}
+		if filters.DueDateTo != nil {
+			query = query.Where("due_date <= ?", *filters.DueDateTo)
+		}
+		if filters.AssignedBy != nil {
+			query = query.Where("assigned_by = ?", *filters.AssignedBy)
+		}
+		// Filter by tags (tasks that have ALL specified tags)
+		if len(filters.TagIDs) > 0 {
+			query = query.Joins("JOIN task_tags ON tasks.id = task_tags.task_id").
+				Where("task_tags.tag_id IN ?", filters.TagIDs).
+				Group("tasks.id").
+				Having("COUNT(DISTINCT task_tags.tag_id) = ?", len(filters.TagIDs))
+		}
+	}
+
+	// Count total before pagination
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	// Apply sorting
+	sortBy := "created_at"
+	order := "DESC"
+	if filters != nil {
+		if filters.SortBy != "" {
+			validSortFields := map[string]bool{
+				"created_at": true,
+				"due_date":   true,
+				"title":      true,
+				"priority":   true,
+			}
+			if validSortFields[filters.SortBy] {
+				sortBy = filters.SortBy
+			}
+		}
+		if filters.Order != "" {
+			if filters.Order == "asc" || filters.Order == "desc" {
+				order = filters.Order
+			}
+		}
+	}
+	query = query.Order(sortBy + " " + order)
+
+	// Apply pagination
+	if filters != nil && filters.Limit > 0 {
+		query = query.Limit(filters.Limit)
+		if filters.Page > 0 {
+			offset := (filters.Page - 1) * filters.Limit
+			query = query.Offset(offset)
+		}
+	}
+
+	// Execute query with preloads
+	if err := query.Preload("AssignedByUser").Preload("Tags").Find(&tasks).Error; err != nil {
+		return nil, 0, err
+	}
+
+	return tasks, total, nil
+}
+
+func (r *taskRepository) Update(task *models.Task) error {
+	return database.DB.Save(task).Error
+}
+
+func (r *taskRepository) Delete(id uint) error {
+	return database.DB.Delete(&models.Task{}, id).Error
+}
+
+func (r *taskRepository) Exists(id uint) (bool, error) {
+	var count int64
+	if err := database.DB.Model(&models.Task{}).Where("id = ?", id).Count(&count).Error; err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
