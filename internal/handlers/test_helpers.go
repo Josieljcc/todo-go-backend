@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"fmt"
+	"os"
 	"todo-go-backend/internal/database"
 	"todo-go-backend/internal/middleware"
 	"todo-go-backend/internal/models"
@@ -8,18 +10,65 @@ import (
 	"todo-go-backend/internal/services"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/driver/mysql"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
-// setupTestDB cria um banco de dados em memória para testes
+// setupTestDB cria um banco de dados para testes
+// Tenta usar MySQL se as variáveis de ambiente estiverem configuradas (CI),
+// caso contrário tenta usar SQLite (requer CGO habilitado)
 func setupTestDB() *gorm.DB {
-	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
-	if err != nil {
-		panic("Failed to connect to test database")
+	var db *gorm.DB
+	var err error
+
+	// Verificar se MySQL está disponível (como na pipeline CI)
+	dbHost := os.Getenv("DATABASE_HOST")
+	dbPort := os.Getenv("DATABASE_PORT")
+	dbUser := os.Getenv("DATABASE_USER")
+	dbPassword := os.Getenv("DATABASE_PASSWORD")
+	dbName := os.Getenv("DATABASE_NAME")
+
+	if dbHost != "" && dbPort != "" && dbUser != "" && dbPassword != "" && dbName != "" {
+		// Usar MySQL (como na pipeline CI)
+		dsn := fmt.Sprintf(
+			"%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
+			dbUser,
+			dbPassword,
+			dbHost,
+			dbPort,
+			dbName,
+		)
+		db, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
+		if err != nil {
+			panic("Failed to connect to MySQL test database: " + err.Error())
+		}
+	} else {
+		// Tentar usar SQLite (requer CGO habilitado)
+		// Usar arquivo temporário ao invés de :memory: para compatibilidade
+		tmpFile, err := os.CreateTemp("", "test_*.db")
+		if err != nil {
+			panic("Failed to create temp file for test database: " + err.Error())
+		}
+		tmpFile.Close()
+		
+		// Remover o arquivo após os testes (será recriado pelo SQLite)
+		os.Remove(tmpFile.Name())
+
+		db, err = gorm.Open(sqlite.Open(tmpFile.Name()), &gorm.Config{})
+		if err != nil {
+			panic("Failed to connect to SQLite test database. SQLite requires CGO to be enabled. " +
+				"Either enable CGO (set CGO_ENABLED=1) or configure MySQL environment variables " +
+				"(DATABASE_HOST, DATABASE_PORT, DATABASE_USER, DATABASE_PASSWORD, DATABASE_NAME). " +
+				"Error: " + err.Error())
+		}
 	}
 
-	db.AutoMigrate(&models.User{}, &models.Task{}, &models.Tag{}, &models.Comment{}, &models.Notification{})
+	err = db.AutoMigrate(&models.User{}, &models.Task{}, &models.Tag{}, &models.Comment{}, &models.Notification{})
+	if err != nil {
+		panic("Failed to migrate test database: " + err.Error())
+	}
+
 	database.DB = db
 	return db
 }

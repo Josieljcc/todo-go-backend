@@ -3,45 +3,39 @@ package services
 import (
 	"testing"
 	"todo-go-backend/internal/errors"
+	"todo-go-backend/internal/models"
+	"todo-go-backend/internal/repositories"
 
 	"github.com/stretchr/testify/assert"
 )
 
 // MockUserRepository é um mock do UserRepository para testes
 type MockUserRepository struct {
-	users        map[uint]*MockUser
-	usersByUser  map[string]*MockUser
-	usersByEmail map[string]*MockUser
+	users        map[uint]*models.User
+	usersByUser  map[string]*models.User
+	usersByEmail map[string]*models.User
 	nextID       uint
 }
 
-type MockUser struct {
-	ID       uint
-	Username string
-	Email    string
-	Password string
-}
-
-func NewMockUserRepository() *MockUserRepository {
+func NewMockUserRepository() repositories.UserRepository {
 	return &MockUserRepository{
-		users:        make(map[uint]*MockUser),
-		usersByUser:  make(map[string]*MockUser),
-		usersByEmail: make(map[string]*MockUser),
+		users:        make(map[uint]*models.User),
+		usersByUser:  make(map[string]*models.User),
+		usersByEmail: make(map[string]*models.User),
 		nextID:       1,
 	}
 }
 
-func (m *MockUserRepository) Create(user interface{}) error {
-	u := user.(*MockUser)
-	u.ID = m.nextID
+func (m *MockUserRepository) Create(user *models.User) error {
+	user.ID = m.nextID
 	m.nextID++
-	m.users[u.ID] = u
-	m.usersByUser[u.Username] = u
-	m.usersByEmail[u.Email] = u
+	m.users[user.ID] = user
+	m.usersByUser[user.Username] = user
+	m.usersByEmail[user.Email] = user
 	return nil
 }
 
-func (m *MockUserRepository) FindByID(id uint) (interface{}, error) {
+func (m *MockUserRepository) FindByID(id uint) (*models.User, error) {
 	user, ok := m.users[id]
 	if !ok {
 		return nil, errors.ErrUserNotFound
@@ -49,7 +43,7 @@ func (m *MockUserRepository) FindByID(id uint) (interface{}, error) {
 	return user, nil
 }
 
-func (m *MockUserRepository) FindByUsername(username string) (interface{}, error) {
+func (m *MockUserRepository) FindByUsername(username string) (*models.User, error) {
 	user, ok := m.usersByUser[username]
 	if !ok {
 		return nil, errors.ErrUserNotFound
@@ -57,7 +51,7 @@ func (m *MockUserRepository) FindByUsername(username string) (interface{}, error
 	return user, nil
 }
 
-func (m *MockUserRepository) FindByEmail(email string) (interface{}, error) {
+func (m *MockUserRepository) FindByEmail(email string) (*models.User, error) {
 	user, ok := m.usersByEmail[email]
 	if !ok {
 		return nil, errors.ErrUserNotFound
@@ -65,7 +59,7 @@ func (m *MockUserRepository) FindByEmail(email string) (interface{}, error) {
 	return user, nil
 }
 
-func (m *MockUserRepository) FindByUsernameOrEmail(username, email string) (interface{}, error) {
+func (m *MockUserRepository) FindByUsernameOrEmail(username, email string) (*models.User, error) {
 	if user, ok := m.usersByUser[username]; ok {
 		return user, nil
 	}
@@ -75,39 +69,20 @@ func (m *MockUserRepository) FindByUsernameOrEmail(username, email string) (inte
 	return nil, errors.ErrUserNotFound
 }
 
+func (m *MockUserRepository) FindByUsernameOrEmailValue(identifier string) (*models.User, error) {
+	if user, ok := m.usersByUser[identifier]; ok {
+		return user, nil
+	}
+	if user, ok := m.usersByEmail[identifier]; ok {
+		return user, nil
+	}
+	return nil, errors.ErrUserNotFound
+}
+
 func (m *MockUserRepository) ExistsByUsernameOrEmail(username, email string) (bool, error) {
 	_, userExists := m.usersByUser[username]
 	_, emailExists := m.usersByEmail[email]
 	return userExists || emailExists, nil
-}
-
-// Implementação real do UserRepository para o mock
-type mockUserRepo struct {
-	mock *MockUserRepository
-}
-
-func (m *mockUserRepo) Create(user interface{}) error {
-	return m.mock.Create(user)
-}
-
-func (m *mockUserRepo) FindByID(id uint) (interface{}, error) {
-	return m.mock.FindByID(id)
-}
-
-func (m *mockUserRepo) FindByUsername(username string) (interface{}, error) {
-	return m.mock.FindByUsername(username)
-}
-
-func (m *mockUserRepo) FindByEmail(email string) (interface{}, error) {
-	return m.mock.FindByEmail(email)
-}
-
-func (m *mockUserRepo) FindByUsernameOrEmail(username, email string) (interface{}, error) {
-	return m.mock.FindByUsernameOrEmail(username, email)
-}
-
-func (m *mockUserRepo) ExistsByUsernameOrEmail(username, email string) (bool, error) {
-	return m.mock.ExistsByUsernameOrEmail(username, email)
 }
 
 func TestAuthService_Register(t *testing.T) {

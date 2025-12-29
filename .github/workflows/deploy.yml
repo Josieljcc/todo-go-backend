@@ -50,21 +50,21 @@ jobs:
 
       - name: Stop existing containers
         run: |
-          docker-compose down || true
+          docker compose down || true
 
       - name: Pull latest images (if using pre-built images)
         run: |
-          docker-compose pull || true
+          docker compose pull || true
 
       - name: Build and start services
         run: |
-          docker-compose up -d --build
+          docker compose up -d --build
 
       - name: Wait for services to be healthy
         run: |
           echo "Waiting for services to start..."
           sleep 10
-          docker-compose ps
+          docker compose ps
 
       - name: Check API health
         run: |
@@ -81,15 +81,15 @@ jobs:
             sleep 2
           done
           echo "API health check failed after $max_attempts attempts"
-          docker-compose logs api
+          docker compose logs api
           exit 1
 
       - name: Show running containers
         run: |
-          docker-compose ps
+          docker compose ps
           docker ps
 
       - name: Show recent logs
         if: always()
         run: |
-          docker-compose logs --tail=50
+          docker compose logs --tail=50
