@@ -107,11 +107,8 @@ func main() {
 		c.JSON(200, gin.H{"status": "ok"})
 	})
 
-	// Swagger documentation
-	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
-
 	// Serve swagger.json and swagger.yaml directly for openapi-typescript
-	// Try multiple paths to work both locally and in Docker
+	// These routes must be defined BEFORE the wildcard route to avoid conflicts
 	router.GET("/swagger/swagger.json", func(c *gin.Context) {
 		// Try different possible paths (local dev and Docker)
 		possiblePaths := []string{
@@ -160,6 +157,9 @@ func main() {
 		}
 		c.Data(200, "application/x-yaml", data)
 	})
+
+	// Swagger documentation (wildcard route must be last)
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	// Public routes
 	api := router.Group("/api/v1")
