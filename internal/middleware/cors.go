@@ -9,6 +9,7 @@ import (
 )
 
 // CORSMiddleware creates a CORS middleware based on the provided configuration
+// TEMPORARY: Currently configured to allow all origins for testing
 func CORSMiddleware(cfg *config.Config) gin.HandlerFunc {
 	// Parse allowed origins
 	allowedOrigins := parseStringList(cfg.CORSAllowedOrigins)
@@ -60,27 +61,22 @@ func CORSMiddleware(cfg *config.Config) gin.HandlerFunc {
 
 		// Check if we have wildcard (*) configured
 		if hasWildcard || (len(allowedOrigins) == 1 && allowedOrigins[0] == "*") {
-			// Allow all origins
+			// Allow all origins - TEMPORARY: Always allow any origin for testing
 			originAllowed = true
 
-			// If credentials are allowed, we CANNOT use "*" - must use specific origin
-			// This is a CORS specification requirement
-			if cfg.CORSAllowCredentials {
-				// When credentials are allowed, we must return the specific origin
-				if origin != "" {
-					allowedOriginValue = origin
-				} else {
-					// No origin header means same-origin request
-					// Construct origin from request
-					scheme := "http"
-					if c.Request.TLS != nil {
-						scheme = "https"
-					}
-					allowedOriginValue = scheme + "://" + c.Request.Host
-				}
+			// TEMPORARY: For testing, always allow any origin
+			// If credentials are allowed, we return the specific origin (CORS spec requirement)
+			// If no origin header, construct from request
+			if origin != "" {
+				allowedOriginValue = origin
 			} else {
-				// When credentials are NOT allowed, we can use "*"
-				allowedOriginValue = "*"
+				// No origin header means same-origin request
+				// Construct origin from request
+				scheme := "http"
+				if c.Request.TLS != nil {
+					scheme = "https"
+				}
+				allowedOriginValue = scheme + "://" + c.Request.Host
 			}
 		} else {
 			// If no origin header (same-origin request), allow it
