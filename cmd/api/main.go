@@ -107,9 +107,12 @@ func main() {
 		c.JSON(200, gin.H{"status": "ok"})
 	})
 
+	// Swagger documentation
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
 	// Serve swagger.json and swagger.yaml directly for openapi-typescript
-	// These routes must be defined BEFORE the wildcard route to avoid conflicts
-	router.GET("/swagger/swagger.json", func(c *gin.Context) {
+	// Using different paths to avoid conflicts with /swagger/*any
+	router.GET("/swagger.json", func(c *gin.Context) {
 		// Try different possible paths (local dev and Docker)
 		possiblePaths := []string{
 			filepath.Join("docs", "swagger.json"),
@@ -119,22 +122,27 @@ func main() {
 
 		var data []byte
 		var err error
+		var usedPath string
 		for _, path := range possiblePaths {
 			data, err = os.ReadFile(path)
 			if err == nil {
+				usedPath = path
 				break
 			}
 		}
 
 		if err != nil {
 			// Fallback: redirect to the default swagger doc endpoint
+			log.Printf("Failed to read swagger.json from all paths, redirecting to /swagger/doc.json")
 			c.Redirect(302, "/swagger/doc.json")
 			return
 		}
+
+		log.Printf("Serving swagger.json from: %s", usedPath)
 		c.Data(200, "application/json", data)
 	})
 
-	router.GET("/swagger/swagger.yaml", func(c *gin.Context) {
+	router.GET("/swagger.yaml", func(c *gin.Context) {
 		// Try different possible paths (local dev and Docker)
 		possiblePaths := []string{
 			filepath.Join("docs", "swagger.yaml"),
@@ -144,22 +152,24 @@ func main() {
 
 		var data []byte
 		var err error
+		var usedPath string
 		for _, path := range possiblePaths {
 			data, err = os.ReadFile(path)
 			if err == nil {
+				usedPath = path
 				break
 			}
 		}
 
 		if err != nil {
-			c.JSON(404, gin.H{"error": "swagger.yaml not found. The file may not be available in this environment. Try using /swagger/swagger.json or /swagger/doc.json instead."})
+			log.Printf("Failed to read swagger.yaml from all paths. Tried: %v", possiblePaths)
+			c.JSON(404, gin.H{"error": "swagger.yaml not found. The file may not be available in this environment. Try using /swagger.json or /swagger/doc.json instead."})
 			return
 		}
+
+		log.Printf("Serving swagger.yaml from: %s", usedPath)
 		c.Data(200, "application/x-yaml", data)
 	})
-
-	// Swagger documentation (wildcard route must be last)
-	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	// Public routes
 	api := router.Group("/api/v1")

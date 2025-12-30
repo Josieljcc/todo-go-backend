@@ -343,6 +343,40 @@ GET /health
 }
 ```
 
+### Documentação (Swagger/OpenAPI)
+
+#### Interface interativa
+```http
+GET /swagger/index.html
+```
+
+Acesse a documentação interativa da API no navegador.
+
+#### Especificação JSON
+```http
+GET /swagger/swagger.json
+```
+
+Retorna a especificação OpenAPI em formato JSON. Útil para ferramentas como `openapi-typescript`.
+
+**Resposta:** Especificação OpenAPI completa em JSON
+
+#### Especificação YAML
+```http
+GET /swagger/swagger.yaml
+```
+
+Retorna a especificação OpenAPI em formato YAML.
+
+**Resposta:** Especificação OpenAPI completa em YAML
+
+#### Especificação JSON (fallback)
+```http
+GET /swagger/doc.json
+```
+
+Endpoint alternativo para a especificação JSON.
+
 ## Exemplos de Uso
 
 ### Criar tarefa para outro usuário
@@ -437,6 +471,17 @@ The API is fully documented with Swagger/OpenAPI. After starting the server, you
 ```
 http://localhost:8080/swagger/index.html
 ```
+
+### Swagger Endpoints
+
+The following endpoints are available for accessing the Swagger/OpenAPI specification:
+
+- **Interactive UI**: `http://localhost:8080/swagger/index.html`
+- **JSON Specification**: `http://localhost:8080/swagger/swagger.json` - For use with tools like `openapi-typescript`
+- **YAML Specification**: `http://localhost:8080/swagger/swagger.yaml` - Alternative format for the OpenAPI spec
+- **Default JSON**: `http://localhost:8080/swagger/doc.json` - Fallback endpoint
+
+### Regenerating Documentation
 
 To regenerate the Swagger documentation after making changes:
 
