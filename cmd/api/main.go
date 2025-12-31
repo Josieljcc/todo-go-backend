@@ -110,14 +110,14 @@ func main() {
 	// Swagger documentation
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
-	// Serve swagger.json and swagger.yaml directly for openapi-typescript
+	// Serve openapi.json (OpenAPI 3.0) and swagger.json (fallback) directly for openapi-typescript
 	// Using different paths to avoid conflicts with /swagger/*any
-	router.GET("/swagger.json", func(c *gin.Context) {
+	router.GET("/openapi.json", func(c *gin.Context) {
 		// Try different possible paths (local dev and Docker)
 		possiblePaths := []string{
-			filepath.Join("docs", "swagger.json"),
-			filepath.Join(".", "docs", "swagger.json"),
-			filepath.Join("/root", "docs", "swagger.json"),
+			filepath.Join("docs", "openapi.json"),
+			filepath.Join(".", "docs", "openapi.json"),
+			filepath.Join("/root", "docs", "openapi.json"),
 		}
 
 		var data []byte
@@ -132,14 +132,18 @@ func main() {
 		}
 
 		if err != nil {
-			// Fallback: redirect to the default swagger doc endpoint
-			log.Printf("Failed to read swagger.json from all paths, redirecting to /swagger/doc.json")
+			log.Printf("Failed to read openapi.json from all paths, redirecting to /swagger/doc.json")
 			c.Redirect(302, "/swagger/doc.json")
 			return
 		}
 
-		log.Printf("Serving swagger.json from: %s", usedPath)
+		log.Printf("Serving openapi.json from: %s", usedPath)
 		c.Data(200, "application/json", data)
+	})
+
+	// Keep swagger.json endpoint for backward compatibility (redirects to openapi.json)
+	router.GET("/swagger.json", func(c *gin.Context) {
+		c.Redirect(302, "/openapi.json")
 	})
 
 	router.GET("/swagger.yaml", func(c *gin.Context) {

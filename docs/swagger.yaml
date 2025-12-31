@@ -1,5 +1,8 @@
-basePath: /api/v1
-definitions:
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Local development server
+components:
+  schemas:
   handlers.AuthResponse:
     properties:
       message:
@@ -324,7 +327,6 @@ definitions:
       total_pages:
         type: integer
     type: object
-host: localhost:8080
 info:
   contact:
     email: support@example.com
@@ -1053,10 +1055,11 @@ paths:
       summary: Get comments for a task
       tags:
       - comments
-securityDefinitions:
-  BearerAuth:
-    description: Type "Bearer" followed by a space and JWT token.
-    in: header
-    name: Authorization
-    type: apiKey
-swagger: "2.0"
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Type "Bearer" followed by a space and JWT token.
+openapi: 3.0.0

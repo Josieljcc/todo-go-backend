@@ -16,17 +16,11 @@ RUN go mod download
 # Copy source code
 COPY . .
 
-# Install swag for Swagger documentation (use specific version to avoid compatibility issues)
-RUN go install github.com/swaggo/swag/cmd/swag@v1.8.12
+# Install swag-openapi3 for OpenAPI 3.0 documentation generation
+RUN go install github.com/dimasdanz/swag-openapi3@latest
 
-# Generate Swagger docs
-RUN swag init -g cmd/api/main.go
-
-# Fix Swagger docs compatibility issue (remove unsupported LeftDelim and RightDelim fields)
-# Using grep to filter out problematic lines (more reliable than sed in Alpine)
-RUN grep -v "LeftDelim:" docs/docs.go > docs/docs.go.tmp && \
-    grep -v "RightDelim:" docs/docs.go.tmp > docs/docs.go && \
-    rm -f docs/docs.go.tmp || true
+# Generate OpenAPI 3.0 docs
+RUN swag-openapi3 init -g cmd/api/main.go -o ./docs --requiredByDefault
 
 # Build the application
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o /app/api ./cmd/api

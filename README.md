@@ -477,16 +477,24 @@ http://localhost:8080/swagger/index.html
 The following endpoints are available for accessing the Swagger/OpenAPI specification:
 
 - **Interactive UI**: `http://localhost:8080/swagger/index.html`
-- **JSON Specification**: `http://localhost:8080/swagger/swagger.json` - For use with tools like `openapi-typescript`
-- **YAML Specification**: `http://localhost:8080/swagger/swagger.yaml` - Alternative format for the OpenAPI spec
+- **OpenAPI 3.0 JSON**: `http://localhost:8080/openapi.json` - OpenAPI 3.0 specification (recommended)
+- **OpenAPI 3.0 YAML**: `http://localhost:8080/swagger/swagger.yaml` - Alternative format for the OpenAPI spec
+- **Legacy JSON**: `http://localhost:8080/swagger.json` - Redirects to openapi.json (backward compatibility)
 - **Default JSON**: `http://localhost:8080/swagger/doc.json` - Fallback endpoint
 
 ### Regenerating Documentation
 
-To regenerate the Swagger documentation after making changes:
+To regenerate the OpenAPI 3.0 documentation after making changes:
 
 ```bash
-swag init -g cmd/api/main.go
+swag-openapi3 init -g cmd/api/main.go -o ./docs --requiredByDefault
+```
+
+Or if you have it installed globally:
+
+```bash
+go install github.com/dimasdanz/swag-openapi3@latest
+swag-openapi3 init -g cmd/api/main.go -o ./docs --requiredByDefault
 ```
 
 ## Docker

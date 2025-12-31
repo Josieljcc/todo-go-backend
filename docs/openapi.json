@@ -1,0 +1,2231 @@
+{
+	"components": {
+		"schemas": {
+			"handlers.AuthResponse": {
+				"properties": {
+					"message": {
+						"example": "Login successful",
+						"type": "string"
+					},
+					"token": {
+						"example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+						"type": "string"
+					},
+					"user": {}
+				},
+				"required": [
+					"message",
+					"token",
+					"user"
+				],
+				"type": "object"
+			},
+			"handlers.CreateCommentRequest": {
+				"properties": {
+					"content": {
+						"example": "This is a comment on the task",
+						"maxLength": 5000,
+						"minLength": 1,
+						"type": "string"
+					},
+					"task_id": {
+						"example": 1,
+						"type": "integer"
+					}
+				},
+				"required": [
+					"content",
+					"task_id"
+				],
+				"type": "object"
+			},
+			"handlers.CreateTagRequest": {
+				"properties": {
+					"color": {
+						"description": "Optional: hex color code",
+						"example": "#FF5733",
+						"type": "string"
+					},
+					"name": {
+						"example": "Important",
+						"maxLength": 50,
+						"minLength": 1,
+						"type": "string"
+					}
+				},
+				"required": [
+					"color",
+					"name"
+				],
+				"type": "object"
+			},
+			"handlers.CreateTaskRequest": {
+				"properties": {
+					"description": {
+						"example": "Clean all rooms",
+						"type": "string"
+					},
+					"due_date": {
+						"description": "ISO 8601 format",
+						"example": "2024-12-31T23:59:59Z",
+						"type": "string"
+					},
+					"priority": {
+						"description": "Optional: task priority",
+						"enum": [
+							"baixa",
+							"media",
+							"alta",
+							"urgente"
+						],
+						"example": "alta",
+						"type": "string"
+					},
+					"tag_ids": {
+						"description": "Optional: IDs of tags to associate",
+						"items": {
+							"type": "integer"
+						},
+						"type": "array"
+					},
+					"title": {
+						"example": "Clean the house",
+						"maxLength": 200,
+						"minLength": 1,
+						"type": "string"
+					},
+					"type": {
+						"allOf": [
+							{
+								"$ref": "#/components/schemas/models.TaskType"
+							}
+						],
+						"enum": [
+							"casa",
+							"trabalho",
+							"lazer",
+							"saude"
+						],
+						"example": "casa"
+					},
+					"user_id": {
+						"description": "Optional: if provided, assign to another user",
+						"example": 2,
+						"type": "integer"
+					}
+				},
+				"required": [
+					"description",
+					"due_date",
+					"priority",
+					"tag_ids",
+					"title",
+					"type",
+					"user_id"
+				],
+				"type": "object"
+			},
+			"handlers.ErrorResponse": {
+				"properties": {
+					"error": {
+						"type": "string"
+					},
+					"message": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"error",
+					"message"
+				],
+				"type": "object"
+			},
+			"handlers.LoginRequest": {
+				"properties": {
+					"password": {
+						"example": "password123",
+						"type": "string"
+					},
+					"username": {
+						"description": "Username or email address (e.g., \"johndoe\" or \"john@example.com\")",
+						"example": "johndoe",
+						"type": "string"
+					}
+				},
+				"required": [
+					"password",
+					"username"
+				],
+				"type": "object"
+			},
+			"handlers.RegisterRequest": {
+				"properties": {
+					"email": {
+						"example": "john@example.com",
+						"type": "string"
+					},
+					"password": {
+						"example": "password123",
+						"minLength": 6,
+						"type": "string"
+					},
+					"username": {
+						"example": "johndoe",
+						"maxLength": 50,
+						"minLength": 3,
+						"type": "string"
+					}
+				},
+				"required": [
+					"email",
+					"password",
+					"username"
+				],
+				"type": "object"
+			},
+			"handlers.SuccessResponse": {
+				"properties": {
+					"data": {},
+					"message": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"data",
+					"message"
+				],
+				"type": "object"
+			},
+			"handlers.UpdateCommentRequest": {
+				"properties": {
+					"content": {
+						"example": "Updated comment text",
+						"maxLength": 5000,
+						"minLength": 1,
+						"type": "string"
+					}
+				},
+				"required": [
+					"content"
+				],
+				"type": "object"
+			},
+			"handlers.UpdateNotificationsEnabledRequest": {
+				"properties": {
+					"notifications_enabled": {
+						"example": true,
+						"type": "boolean"
+					}
+				},
+				"required": [
+					"notifications_enabled"
+				],
+				"type": "object"
+			},
+			"handlers.UpdateTagRequest": {
+				"properties": {
+					"color": {
+						"example": "#33FF57",
+						"type": "string"
+					},
+					"name": {
+						"example": "Updated Tag",
+						"type": "string"
+					}
+				},
+				"required": [
+					"color",
+					"name"
+				],
+				"type": "object"
+			},
+			"handlers.UpdateTaskRequest": {
+				"properties": {
+					"completed": {
+						"example": true,
+						"type": "boolean"
+					},
+					"description": {
+						"example": "Updated description",
+						"type": "string"
+					},
+					"due_date": {
+						"example": "2024-12-31T23:59:59Z",
+						"type": "string"
+					},
+					"priority": {
+						"enum": [
+							"baixa",
+							"media",
+							"alta",
+							"urgente"
+						],
+						"example": "urgente",
+						"type": "string"
+					},
+					"tag_ids": {
+						"description": "Optional: nil = no change, [] = remove all, [1,2] = set tags",
+						"items": {
+							"type": "integer"
+						},
+						"type": "array"
+					},
+					"title": {
+						"example": "Updated title",
+						"type": "string"
+					},
+					"type": {
+						"allOf": [
+							{
+								"$ref": "#/components/schemas/models.TaskType"
+							}
+						],
+						"enum": [
+							"casa",
+							"trabalho",
+							"lazer",
+							"saude"
+						],
+						"example": "trabalho"
+					}
+				},
+				"required": [
+					"completed",
+					"description",
+					"due_date",
+					"priority",
+					"tag_ids",
+					"title",
+					"type"
+				],
+				"type": "object"
+			},
+			"handlers.UpdateTelegramChatIDRequest": {
+				"properties": {
+					"telegram_chat_id": {
+						"description": "Telegram chat ID (must be numeric string, null to remove). User must send a message to the bot first.",
+						"example": "123456789",
+						"type": "string"
+					}
+				},
+				"required": [
+					"telegram_chat_id"
+				],
+				"type": "object"
+			},
+			"models.Comment": {
+				"properties": {
+					"content": {
+						"description": "Comment text",
+						"type": "string"
+					},
+					"created_at": {
+						"type": "string"
+					},
+					"id": {
+						"type": "integer"
+					},
+					"task": {
+						"$ref": "#/components/schemas/models.Task"
+					},
+					"task_id": {
+						"description": "ID of the task this comment belongs to",
+						"type": "integer"
+					},
+					"updated_at": {
+						"type": "string"
+					},
+					"user": {
+						"$ref": "#/components/schemas/models.User"
+					},
+					"user_id": {
+						"description": "ID of the user who created the comment",
+						"type": "integer"
+					}
+				},
+				"required": [
+					"content",
+					"created_at",
+					"id",
+					"task",
+					"task_id",
+					"updated_at",
+					"user",
+					"user_id"
+				],
+				"type": "object"
+			},
+			"models.Priority": {
+				"enum": [
+					"baixa",
+					"media",
+					"alta",
+					"urgente"
+				],
+				"type": "string",
+				"x-enum-varnames": [
+					"PriorityBaixa",
+					"PriorityMedia",
+					"PriorityAlta",
+					"PriorityUrgente"
+				]
+			},
+			"models.Tag": {
+				"properties": {
+					"color": {
+						"description": "Hex color code (e.g., #FF5733)",
+						"type": "string"
+					},
+					"created_at": {
+						"type": "string"
+					},
+					"id": {
+						"type": "integer"
+					},
+					"name": {
+						"type": "string"
+					},
+					"tasks": {
+						"items": {
+							"$ref": "#/components/schemas/models.Task"
+						},
+						"type": "array"
+					},
+					"updated_at": {
+						"type": "string"
+					},
+					"user": {
+						"$ref": "#/components/schemas/models.User"
+					},
+					"user_id": {
+						"description": "Tags are user-specific",
+						"type": "integer"
+					}
+				},
+				"required": [
+					"color",
+					"created_at",
+					"id",
+					"name",
+					"tasks",
+					"updated_at",
+					"user",
+					"user_id"
+				],
+				"type": "object"
+			},
+			"models.Task": {
+				"properties": {
+					"assigned_by": {
+						"description": "ID of the user who created/assigned the task (nil if created by the user themselves)",
+						"type": "integer"
+					},
+					"assigned_by_user": {
+						"$ref": "#/components/schemas/models.User"
+					},
+					"comments": {
+						"description": "Comments on the task",
+						"items": {
+							"$ref": "#/components/schemas/models.Comment"
+						},
+						"type": "array"
+					},
+					"completed": {
+						"type": "boolean"
+					},
+					"created_at": {
+						"type": "string"
+					},
+					"description": {
+						"type": "string"
+					},
+					"due_date": {
+						"description": "Deadline for task completion",
+						"type": "string"
+					},
+					"id": {
+						"type": "integer"
+					},
+					"priority": {
+						"allOf": [
+							{
+								"$ref": "#/components/schemas/models.Priority"
+							}
+						],
+						"description": "Task priority"
+					},
+					"tags": {
+						"description": "Tags associated with the task",
+						"items": {
+							"$ref": "#/components/schemas/models.Tag"
+						},
+						"type": "array"
+					},
+					"title": {
+						"type": "string"
+					},
+					"type": {
+						"$ref": "#/components/schemas/models.TaskType"
+					},
+					"updated_at": {
+						"type": "string"
+					},
+					"user": {
+						"$ref": "#/components/schemas/models.User"
+					},
+					"user_id": {
+						"description": "ID of the user responsible for the task",
+						"type": "integer"
+					}
+				},
+				"required": [
+					"assigned_by",
+					"assigned_by_user",
+					"comments",
+					"completed",
+					"created_at",
+					"description",
+					"due_date",
+					"id",
+					"priority",
+					"tags",
+					"title",
+					"type",
+					"updated_at",
+					"user",
+					"user_id"
+				],
+				"type": "object"
+			},
+			"models.TaskType": {
+				"enum": [
+					"casa",
+					"trabalho",
+					"lazer",
+					"saude"
+				],
+				"type": "string",
+				"x-enum-varnames": [
+					"TaskTypeCasa",
+					"TaskTypeTrabalho",
+					"TaskTypeLazer",
+					"TaskTypeSaude"
+				]
+			},
+			"models.User": {
+				"properties": {
+					"created_at": {
+						"type": "string"
+					},
+					"email": {
+						"type": "string"
+					},
+					"id": {
+						"type": "integer"
+					},
+					"notifications_enabled": {
+						"description": "Enable/disable notifications",
+						"type": "boolean"
+					},
+					"telegram_chat_id": {
+						"description": "Telegram chat ID for notifications",
+						"type": "string"
+					},
+					"updated_at": {
+						"type": "string"
+					},
+					"username": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"created_at",
+					"email",
+					"id",
+					"notifications_enabled",
+					"telegram_chat_id",
+					"updated_at",
+					"username"
+				],
+				"type": "object"
+			},
+			"services.PaginatedTasksResponse": {
+				"properties": {
+					"limit": {
+						"type": "integer"
+					},
+					"page": {
+						"type": "integer"
+					},
+					"tasks": {
+						"items": {
+							"$ref": "#/components/schemas/models.Task"
+						},
+						"type": "array"
+					},
+					"total": {
+						"type": "integer"
+					},
+					"total_pages": {
+						"type": "integer"
+					}
+				},
+				"required": [
+					"limit",
+					"page",
+					"tasks",
+					"total",
+					"total_pages"
+				],
+				"type": "object"
+			}
+		},
+		"securitySchemes": {
+			"BearerAuth": {
+				"description": "Type \"Bearer\" followed by a space and JWT token.",
+				"in": "header",
+				"name": "Authorization",
+				"type": "apiKey"
+			}
+		}
+	},
+	"info": {
+		"contact": {
+			"email": "support@example.com",
+			"name": "API Support"
+		},
+		"description": "A RESTful API for managing tasks with JWT authentication and user task assignment",
+		"license": {
+			"name": "MIT",
+			"url": "https://opensource.org/licenses/MIT"
+		},
+		"termsOfService": "http://swagger.io/terms/",
+		"title": "Todo API",
+		"version": "1.0"
+	},
+	"openapi": "3.0.3",
+	"paths": {
+		"/auth/login": {
+			"post": {
+				"description": "Authenticates a user by username or email and returns a JWT token. The username field accepts either username or email address.",
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/handlers.LoginRequest"
+							}
+						}
+					},
+					"description": "User login credentials. The 'username' field accepts either username (e.g., 'johndoe') or email address (e.g., 'john@example.com').",
+					"required": true,
+					"x-originalParamName": "request"
+				},
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.AuthResponse"
+								}
+							}
+						},
+						"description": "OK"
+					},
+					"400": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Bad Request"
+					},
+					"401": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Unauthorized"
+					},
+					"500": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Internal Server Error"
+					}
+				},
+				"summary": "Login user",
+				"tags": [
+					"auth"
+				]
+			}
+		},
+		"/auth/register": {
+			"post": {
+				"description": "Creates a new user account and returns a JWT token",
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/handlers.RegisterRequest"
+							}
+						}
+					},
+					"description": "User registration data",
+					"required": true,
+					"x-originalParamName": "request"
+				},
+				"responses": {
+					"201": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.AuthResponse"
+								}
+							}
+						},
+						"description": "Created"
+					},
+					"400": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Bad Request"
+					},
+					"409": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Conflict"
+					},
+					"500": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Internal Server Error"
+					}
+				},
+				"summary": "Register a new user",
+				"tags": [
+					"auth"
+				]
+			}
+		},
+		"/comments": {
+			"post": {
+				"description": "Creates a new comment on a task. User must own the task or have assigned it.",
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/handlers.CreateCommentRequest"
+							}
+						}
+					},
+					"description": "Comment creation data",
+					"required": true,
+					"x-originalParamName": "request"
+				},
+				"responses": {
+					"201": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/models.Comment"
+								}
+							}
+						},
+						"description": "Created"
+					},
+					"400": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Bad Request"
+					},
+					"401": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Unauthorized"
+					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Forbidden"
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Not Found"
+					},
+					"500": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Internal Server Error"
+					}
+				},
+				"security": [
+					{
+						"BearerAuth": []
+					}
+				],
+				"summary": "Create a comment on a task",
+				"tags": [
+					"comments"
+				]
+			}
+		},
+		"/comments/{id}": {
+			"delete": {
+				"description": "Deletes a comment by its ID. Only the comment author can delete it.",
+				"parameters": [
+					{
+						"description": "Comment ID",
+						"in": "path",
+						"name": "id",
+						"required": true,
+						"schema": {
+							"type": "integer"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.SuccessResponse"
+								}
+							}
+						},
+						"description": "OK"
+					},
+					"400": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Bad Request"
+					},
+					"401": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Unauthorized"
+					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Forbidden"
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Not Found"
+					},
+					"500": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Internal Server Error"
+					}
+				},
+				"security": [
+					{
+						"BearerAuth": []
+					}
+				],
+				"summary": "Delete a comment",
+				"tags": [
+					"comments"
+				]
+			},
+			"get": {
+				"description": "Retrieves a specific comment by its ID",
+				"parameters": [
+					{
+						"description": "Comment ID",
+						"in": "path",
+						"name": "id",
+						"required": true,
+						"schema": {
+							"type": "integer"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/models.Comment"
+								}
+							}
+						},
+						"description": "OK"
+					},
+					"400": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Bad Request"
+					},
+					"401": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Unauthorized"
+					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Forbidden"
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Not Found"
+					}
+				},
+				"security": [
+					{
+						"BearerAuth": []
+					}
+				],
+				"summary": "Get a comment by ID",
+				"tags": [
+					"comments"
+				]
+			},
+			"put": {
+				"description": "Updates an existing comment. Only the comment author can update it.",
+				"parameters": [
+					{
+						"description": "Comment ID",
+						"in": "path",
+						"name": "id",
+						"required": true,
+						"schema": {
+							"type": "integer"
+						}
+					}
+				],
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/handlers.UpdateCommentRequest"
+							}
+						}
+					},
+					"description": "Comment update data",
+					"required": true,
+					"x-originalParamName": "request"
+				},
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/models.Comment"
+								}
+							}
+						},
+						"description": "OK"
+					},
+					"400": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Bad Request"
+					},
+					"401": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Unauthorized"
+					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Forbidden"
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Not Found"
+					},
+					"500": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Internal Server Error"
+					}
+				},
+				"security": [
+					{
+						"BearerAuth": []
+					}
+				],
+				"summary": "Update a comment",
+				"tags": [
+					"comments"
+				]
+			}
+		},
+		"/notifications/debug": {
+			"get": {
+				"description": "Returns debug information about the current user's notification settings and recent tasks",
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"additionalProperties": true,
+									"type": "object"
+								}
+							}
+						},
+						"description": "OK"
+					},
+					"401": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Unauthorized"
+					},
+					"500": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Internal Server Error"
+					}
+				},
+				"security": [
+					{
+						"BearerAuth": []
+					}
+				],
+				"summary": "Get notification debug info",
+				"tags": [
+					"notifications"
+				]
+			}
+		},
+		"/notifications/test": {
+			"post": {
+				"description": "Manually triggers a notification check. Useful for testing without waiting for the scheduler. Check server logs for detailed information.",
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.SuccessResponse"
+								}
+							}
+						},
+						"description": "OK"
+					},
+					"401": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Unauthorized"
+					},
+					"500": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Internal Server Error"
+					}
+				},
+				"security": [
+					{
+						"BearerAuth": []
+					}
+				],
+				"summary": "Test notifications",
+				"tags": [
+					"notifications"
+				]
+			}
+		},
+		"/tags": {
+			"get": {
+				"description": "Retrieves all tags for the authenticated user",
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"items": {
+										"$ref": "#/components/schemas/models.Tag"
+									},
+									"type": "array"
+								}
+							}
+						},
+						"description": "OK"
+					},
+					"401": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Unauthorized"
+					},
+					"500": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Internal Server Error"
+					}
+				},
+				"security": [
+					{
+						"BearerAuth": []
+					}
+				],
+				"summary": "List user tags",
+				"tags": [
+					"tags"
+				]
+			},
+			"post": {
+				"description": "Creates a new custom tag for the authenticated user",
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/handlers.CreateTagRequest"
+							}
+						}
+					},
+					"description": "Tag creation data",
+					"required": true,
+					"x-originalParamName": "request"
+				},
+				"responses": {
+					"201": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/models.Tag"
+								}
+							}
+						},
+						"description": "Created"
+					},
+					"400": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Bad Request"
+					},
+					"401": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Unauthorized"
+					},
+					"500": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Internal Server Error"
+					}
+				},
+				"security": [
+					{
+						"BearerAuth": []
+					}
+				],
+				"summary": "Create a new tag",
+				"tags": [
+					"tags"
+				]
+			}
+		},
+		"/tags/{id}": {
+			"delete": {
+				"description": "Deletes a tag by its ID",
+				"parameters": [
+					{
+						"description": "Tag ID",
+						"in": "path",
+						"name": "id",
+						"required": true,
+						"schema": {
+							"type": "integer"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.SuccessResponse"
+								}
+							}
+						},
+						"description": "OK"
+					},
+					"400": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Bad Request"
+					},
+					"401": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Unauthorized"
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Not Found"
+					},
+					"500": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Internal Server Error"
+					}
+				},
+				"security": [
+					{
+						"BearerAuth": []
+					}
+				],
+				"summary": "Delete a tag",
+				"tags": [
+					"tags"
+				]
+			},
+			"get": {
+				"description": "Retrieves a specific tag by its ID",
+				"parameters": [
+					{
+						"description": "Tag ID",
+						"in": "path",
+						"name": "id",
+						"required": true,
+						"schema": {
+							"type": "integer"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/models.Tag"
+								}
+							}
+						},
+						"description": "OK"
+					},
+					"400": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Bad Request"
+					},
+					"401": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Unauthorized"
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Not Found"
+					}
+				},
+				"security": [
+					{
+						"BearerAuth": []
+					}
+				],
+				"summary": "Get a tag by ID",
+				"tags": [
+					"tags"
+				]
+			},
+			"put": {
+				"description": "Updates an existing tag",
+				"parameters": [
+					{
+						"description": "Tag ID",
+						"in": "path",
+						"name": "id",
+						"required": true,
+						"schema": {
+							"type": "integer"
+						}
+					}
+				],
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/handlers.UpdateTagRequest"
+							}
+						}
+					},
+					"description": "Tag update data",
+					"required": true,
+					"x-originalParamName": "request"
+				},
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/models.Tag"
+								}
+							}
+						},
+						"description": "OK"
+					},
+					"400": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Bad Request"
+					},
+					"401": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Unauthorized"
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Not Found"
+					},
+					"500": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Internal Server Error"
+					}
+				},
+				"security": [
+					{
+						"BearerAuth": []
+					}
+				],
+				"summary": "Update a tag",
+				"tags": [
+					"tags"
+				]
+			}
+		},
+		"/tasks": {
+			"get": {
+				"description": "Retrieves paginated tasks for the authenticated user with optional filters, search, and sorting",
+				"parameters": [
+					{
+						"description": "Page number (default: 1)",
+						"in": "query",
+						"name": "page",
+						"schema": {
+							"type": "integer"
+						}
+					},
+					{
+						"description": "Items per page (default: 10, max: 100)",
+						"in": "query",
+						"name": "limit",
+						"schema": {
+							"type": "integer"
+						}
+					},
+					{
+						"description": "Filter by task type (casa, trabalho, lazer, saude)",
+						"in": "query",
+						"name": "type",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"description": "Filter by completion status",
+						"in": "query",
+						"name": "completed",
+						"schema": {
+							"type": "boolean"
+						}
+					},
+					{
+						"description": "Search in title and description",
+						"in": "query",
+						"name": "search",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"description": "Filter tasks with due date from (ISO 8601 format)",
+						"in": "query",
+						"name": "due_date_from",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"description": "Filter tasks with due date to (ISO 8601 format)",
+						"in": "query",
+						"name": "due_date_to",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"description": "Filter by period (overdue, today, this_week, this_month)",
+						"in": "query",
+						"name": "period",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"description": "Filter by user ID who assigned the task",
+						"in": "query",
+						"name": "assigned_by",
+						"schema": {
+							"type": "integer"
+						}
+					},
+					{
+						"description": "Sort field (created_at, due_date, title)",
+						"in": "query",
+						"name": "sort_by",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"description": "Sort order (asc, desc)",
+						"in": "query",
+						"name": "order",
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/services.PaginatedTasksResponse"
+								}
+							}
+						},
+						"description": "OK"
+					},
+					"400": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Bad Request"
+					},
+					"401": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Unauthorized"
+					},
+					"500": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Internal Server Error"
+					}
+				},
+				"security": [
+					{
+						"BearerAuth": []
+					}
+				],
+				"summary": "List user tasks",
+				"tags": [
+					"tasks"
+				]
+			},
+			"post": {
+				"description": "Creates a new task for the authenticated user or assigns it to another user",
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/handlers.CreateTaskRequest"
+							}
+						}
+					},
+					"description": "Task creation data",
+					"required": true,
+					"x-originalParamName": "request"
+				},
+				"responses": {
+					"201": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/models.Task"
+								}
+							}
+						},
+						"description": "Created"
+					},
+					"400": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Bad Request"
+					},
+					"401": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Unauthorized"
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Not Found"
+					},
+					"500": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Internal Server Error"
+					}
+				},
+				"security": [
+					{
+						"BearerAuth": []
+					}
+				],
+				"summary": "Create a new task",
+				"tags": [
+					"tasks"
+				]
+			}
+		},
+		"/tasks/{id}": {
+			"delete": {
+				"description": "Deletes a task by its ID",
+				"parameters": [
+					{
+						"description": "Task ID",
+						"in": "path",
+						"name": "id",
+						"required": true,
+						"schema": {
+							"type": "integer"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.SuccessResponse"
+								}
+							}
+						},
+						"description": "OK"
+					},
+					"400": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Bad Request"
+					},
+					"401": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Unauthorized"
+					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Forbidden"
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Not Found"
+					},
+					"500": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Internal Server Error"
+					}
+				},
+				"security": [
+					{
+						"BearerAuth": []
+					}
+				],
+				"summary": "Delete a task",
+				"tags": [
+					"tasks"
+				]
+			},
+			"get": {
+				"description": "Retrieves a specific task by its ID",
+				"parameters": [
+					{
+						"description": "Task ID",
+						"in": "path",
+						"name": "id",
+						"required": true,
+						"schema": {
+							"type": "integer"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/models.Task"
+								}
+							}
+						},
+						"description": "OK"
+					},
+					"400": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Bad Request"
+					},
+					"401": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Unauthorized"
+					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Forbidden"
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Not Found"
+					}
+				},
+				"security": [
+					{
+						"BearerAuth": []
+					}
+				],
+				"summary": "Get a task by ID",
+				"tags": [
+					"tasks"
+				]
+			},
+			"put": {
+				"description": "Updates an existing task",
+				"parameters": [
+					{
+						"description": "Task ID",
+						"in": "path",
+						"name": "id",
+						"required": true,
+						"schema": {
+							"type": "integer"
+						}
+					}
+				],
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/handlers.UpdateTaskRequest"
+							}
+						}
+					},
+					"description": "Task update data",
+					"required": true,
+					"x-originalParamName": "request"
+				},
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/models.Task"
+								}
+							}
+						},
+						"description": "OK"
+					},
+					"400": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Bad Request"
+					},
+					"401": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Unauthorized"
+					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Forbidden"
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Not Found"
+					},
+					"500": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Internal Server Error"
+					}
+				},
+				"security": [
+					{
+						"BearerAuth": []
+					}
+				],
+				"summary": "Update a task",
+				"tags": [
+					"tasks"
+				]
+			}
+		},
+		"/tasks/{id}/comments": {
+			"get": {
+				"description": "Retrieves all comments for a specific task. User must own the task or have assigned it.",
+				"parameters": [
+					{
+						"description": "Task ID",
+						"in": "path",
+						"name": "id",
+						"required": true,
+						"schema": {
+							"type": "integer"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"items": {
+										"$ref": "#/components/schemas/models.Comment"
+									},
+									"type": "array"
+								}
+							}
+						},
+						"description": "OK"
+					},
+					"400": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Bad Request"
+					},
+					"401": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Unauthorized"
+					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Forbidden"
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Not Found"
+					},
+					"500": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Internal Server Error"
+					}
+				},
+				"security": [
+					{
+						"BearerAuth": []
+					}
+				],
+				"summary": "Get comments for a task",
+				"tags": [
+					"comments"
+				]
+			}
+		},
+		"/users/notifications-enabled": {
+			"put": {
+				"description": "Updates the notifications enabled setting for the authenticated user",
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/handlers.UpdateNotificationsEnabledRequest"
+							}
+						}
+					},
+					"description": "Notifications enabled",
+					"required": true,
+					"x-originalParamName": "request"
+				},
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.SuccessResponse"
+								}
+							}
+						},
+						"description": "OK"
+					},
+					"400": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Bad Request"
+					},
+					"401": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Unauthorized"
+					},
+					"500": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Internal Server Error"
+					}
+				},
+				"security": [
+					{
+						"BearerAuth": []
+					}
+				],
+				"summary": "Update notifications enabled",
+				"tags": [
+					"users"
+				]
+			}
+		},
+		"/users/telegram-chat-id": {
+			"put": {
+				"description": "Updates the Telegram chat ID for the authenticated user to receive notifications",
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/handlers.UpdateTelegramChatIDRequest"
+							}
+						}
+					},
+					"description": "Telegram chat ID",
+					"required": true,
+					"x-originalParamName": "request"
+				},
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.SuccessResponse"
+								}
+							}
+						},
+						"description": "OK"
+					},
+					"400": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Bad Request"
+					},
+					"401": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Unauthorized"
+					},
+					"500": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Internal Server Error"
+					}
+				},
+				"security": [
+					{
+						"BearerAuth": []
+					}
+				],
+				"summary": "Update Telegram chat ID",
+				"tags": [
+					"users"
+				]
+			}
+		}
+	},
+	"servers": [
+		{
+			"url": "https://localhost:8080/api/v1"
+		}
+	]
+}
