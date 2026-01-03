@@ -85,6 +85,45 @@ func (m *MockUserRepository) ExistsByUsernameOrEmail(username, email string) (bo
 	return userExists || emailExists, nil
 }
 
+func (m *MockUserRepository) FindAll() ([]models.User, error) {
+	users := make([]models.User, 0, len(m.users))
+	for _, user := range m.users {
+		users = append(users, *user)
+	}
+	return users, nil
+}
+
+func (m *MockUserRepository) FindAllPaginated(page, limit int) ([]models.User, int64, error) {
+	allUsers := make([]models.User, 0, len(m.users))
+	for _, user := range m.users {
+		allUsers = append(allUsers, *user)
+	}
+
+	total := int64(len(allUsers))
+	offset := (page - 1) * limit
+
+	// Simple pagination logic
+	start := offset
+	end := offset + limit
+	if start > int(total) {
+		start = int(total)
+	}
+	if end > int(total) {
+		end = int(total)
+	}
+
+	if start < 0 {
+		start = 0
+	}
+
+	var paginatedUsers []models.User
+	if start < int(total) {
+		paginatedUsers = allUsers[start:end]
+	}
+
+	return paginatedUsers, total, nil
+}
+
 func TestAuthService_Register(t *testing.T) {
 	mockRepo := NewMockUserRepository()
 	service := NewAuthService(mockRepo, "test-secret")
