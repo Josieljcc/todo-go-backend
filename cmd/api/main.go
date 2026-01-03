@@ -107,8 +107,9 @@ func main() {
 		c.JSON(200, gin.H{"status": "ok"})
 	})
 
-	// Swagger documentation
-	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	// Swagger documentation - configure to use openapi.json
+	url := ginSwagger.URL("/openapi.json") // Point to OpenAPI 3.0 JSON
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler, url))
 
 	// Serve openapi.json (OpenAPI 3.0) and swagger.json (fallback) directly for openapi-typescript
 	// Using different paths to avoid conflicts with /swagger/*any

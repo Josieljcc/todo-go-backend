@@ -214,8 +214,10 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/components/schemas/handlers.ErrorResponse"
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/handlers.ErrorResponse"
                                 }
                             }
                         }
@@ -377,8 +379,10 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/components/schemas/handlers.ErrorResponse"
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/handlers.ErrorResponse"
                                 }
                             }
                         }
@@ -456,8 +460,10 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/components/schemas/handlers.ErrorResponse"
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/handlers.ErrorResponse"
                                 }
                             }
                         }
@@ -713,8 +719,10 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/components/schemas/handlers.ErrorResponse"
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/handlers.ErrorResponse"
                                 }
                             }
                         }
@@ -782,8 +790,10 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/components/schemas/handlers.ErrorResponse"
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/handlers.ErrorResponse"
                                 }
                             }
                         }
@@ -977,8 +987,10 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/components/schemas/handlers.ErrorResponse"
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/handlers.ErrorResponse"
                                 }
                             }
                         }
@@ -1140,8 +1152,10 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/components/schemas/handlers.ErrorResponse"
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/handlers.ErrorResponse"
                                 }
                             }
                         }
@@ -1219,8 +1233,10 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/components/schemas/handlers.ErrorResponse"
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/handlers.ErrorResponse"
                                 }
                             }
                         }
@@ -1303,8 +1319,10 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "Not Found",
-                        "schema": {
-                            "$ref": "#/components/schemas/handlers.ErrorResponse"
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/handlers.ErrorResponse"
                                 }
                             }
                         }
@@ -1878,6 +1896,7 @@ const docTemplate = `{
                     }
                 }
             }
+        }
         },
         "securitySchemes": {
             "BearerAuth": {
