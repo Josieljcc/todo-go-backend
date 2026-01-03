@@ -81,6 +81,8 @@ const docTemplate = `{
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/handlers.ErrorResponse"
+                                }
+                            }
                         }
                     }
                 }
@@ -141,6 +143,8 @@ const docTemplate = `{
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/handlers.ErrorResponse"
+                                }
+                            }
                         }
                     }
                 }
@@ -222,6 +226,8 @@ const docTemplate = `{
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/handlers.ErrorResponse"
+                                }
+                            }
                         }
                     }
                 }
@@ -383,6 +389,8 @@ const docTemplate = `{
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/handlers.ErrorResponse"
+                                }
+                            }
                         }
                     }
                 }
@@ -460,6 +468,8 @@ const docTemplate = `{
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/handlers.ErrorResponse"
+                                }
+                            }
                         }
                     }
                 }
@@ -507,6 +517,8 @@ const docTemplate = `{
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/handlers.ErrorResponse"
+                                }
+                            }
                         }
                     }
                 }
@@ -570,6 +582,8 @@ const docTemplate = `{
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/handlers.ErrorResponse"
+                                }
+                            }
                         }
                     }
                 }
@@ -711,6 +725,8 @@ const docTemplate = `{
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/handlers.ErrorResponse"
+                                }
+                            }
                         }
                     }
                 }
@@ -778,6 +794,8 @@ const docTemplate = `{
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/handlers.ErrorResponse"
+                                }
+                            }
                         }
                     }
                 }
@@ -870,7 +888,7 @@ const docTemplate = `{
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/services.PaginatedTasksResponse"
-                                    }
+                                }
                             }
                         }
                     },
@@ -900,6 +918,8 @@ const docTemplate = `{
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/handlers.ErrorResponse"
+                                }
+                            }
                         }
                     }
                 }
@@ -969,6 +989,8 @@ const docTemplate = `{
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/handlers.ErrorResponse"
+                                }
+                            }
                         }
                     }
                 }
@@ -1130,6 +1152,8 @@ const docTemplate = `{
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/handlers.ErrorResponse"
+                                }
+                            }
                         }
                     }
                 }
@@ -1207,6 +1231,8 @@ const docTemplate = `{
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/handlers.ErrorResponse"
+                                }
+                            }
                         }
                     }
                 }
@@ -1289,6 +1315,8 @@ const docTemplate = `{
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/handlers.ErrorResponse"
+                                }
+                            }
                         }
                     }
                 }
