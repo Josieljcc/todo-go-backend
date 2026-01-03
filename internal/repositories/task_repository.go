@@ -11,6 +11,7 @@ type TaskRepository interface {
 	Create(task *models.Task) error
 	FindByID(id uint) (*models.Task, error)
 	FindByUserID(userID uint, filters *TaskFilters) ([]models.Task, int64, error)
+	FindByAssignedBy(assignedByID uint, filters *TaskFilters) ([]models.Task, int64, error)
 	Update(task *models.Task) error
 	Delete(id uint) error
 	Exists(id uint) (bool, error)
@@ -134,6 +135,88 @@ func (r *taskRepository) FindByUserID(userID uint, filters *TaskFilters) ([]mode
 
 	// Execute query with preloads
 	if err := query.Preload("AssignedByUser").Preload("Tags").Find(&tasks).Error; err != nil {
+		return nil, 0, err
+	}
+
+	return tasks, total, nil
+}
+
+func (r *taskRepository) FindByAssignedBy(assignedByID uint, filters *TaskFilters) ([]models.Task, int64, error) {
+	var tasks []models.Task
+	var total int64
+
+	// Base query - tasks assigned by this user
+	query := database.DB.Model(&models.Task{}).Where("assigned_by = ?", assignedByID)
+
+	// Apply filters
+	if filters != nil {
+		if filters.Type != nil {
+			query = query.Where("type = ?", *filters.Type)
+		}
+		if filters.Completed != nil {
+			query = query.Where("completed = ?", *filters.Completed)
+		}
+		if filters.Priority != nil {
+			query = query.Where("priority = ?", *filters.Priority)
+		}
+		if filters.Search != nil && *filters.Search != "" {
+			searchPattern := "%" + *filters.Search + "%"
+			query = query.Where("(title LIKE ? OR description LIKE ?)", searchPattern, searchPattern)
+		}
+		if filters.DueDateFrom != nil {
+			query = query.Where("due_date >= ?", *filters.DueDateFrom)
+		}
+		if filters.DueDateTo != nil {
+			query = query.Where("due_date <= ?", *filters.DueDateTo)
+		}
+		// Filter by tags (tasks that have ALL specified tags)
+		if len(filters.TagIDs) > 0 {
+			query = query.Joins("JOIN task_tags ON tasks.id = task_tags.task_id").
+				Where("task_tags.tag_id IN ?", filters.TagIDs).
+				Group("tasks.id").
+				Having("COUNT(DISTINCT task_tags.tag_id) = ?", len(filters.TagIDs))
+		}
+	}
+
+	// Count total before pagination
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	// Apply sorting
+	sortBy := "created_at"
+	order := "DESC"
+	if filters != nil {
+		if filters.SortBy != "" {
+			validSortFields := map[string]bool{
+				"created_at": true,
+				"due_date":   true,
+				"title":      true,
+				"priority":   true,
+			}
+			if validSortFields[filters.SortBy] {
+				sortBy = filters.SortBy
+			}
+		}
+		if filters.Order != "" {
+			if filters.Order == "asc" || filters.Order == "desc" {
+				order = filters.Order
+			}
+		}
+	}
+	query = query.Order(sortBy + " " + order)
+
+	// Apply pagination
+	if filters != nil && filters.Limit > 0 {
+		query = query.Limit(filters.Limit)
+		if filters.Page > 0 {
+			offset := (filters.Page - 1) * filters.Limit
+			query = query.Offset(offset)
+		}
+	}
+
+	// Execute query with preloads
+	if err := query.Preload("User").Preload("Tags").Find(&tasks).Error; err != nil {
 		return nil, 0, err
 	}
 

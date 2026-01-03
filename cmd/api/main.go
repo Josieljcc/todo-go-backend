@@ -189,6 +189,7 @@ func main() {
 	{
 		// Tasks routes
 		protected.GET("/tasks", taskHandler.GetTasks)
+		protected.GET("/tasks/assigned", taskHandler.GetAssignedTasks)
 		protected.POST("/tasks", taskHandler.CreateTask)
 
 		// Comments routes for tasks (must be before /tasks/:id to avoid route conflict)

@@ -265,6 +265,159 @@ func (h *TaskHandler) GetTasks(c *gin.Context) {
 	c.JSON(http.StatusOK, result)
 }
 
+// GetAssignedTasks lists tasks assigned by the authenticated user
+// @Summary      List tasks assigned by user
+// @Description  Retrieves paginated tasks that were created/assigned by the authenticated user to other users. This allows users to follow tasks they created for others.
+// @Tags         tasks
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        page          query     int     false  "Page number (default: 1)"
+// @Param        limit         query     int     false  "Items per page (default: 10, max: 100)"
+// @Param        type          query     string  false  "Filter by task type (casa, trabalho, lazer, saude)"
+// @Param        completed     query     bool    false  "Filter by completion status"
+// @Param        search        query     string  false  "Search in title and description"
+// @Param        due_date_from query     string  false  "Filter tasks with due date from (ISO 8601 format)"
+// @Param        due_date_to   query     string  false  "Filter tasks with due date to (ISO 8601 format)"
+// @Param        period        query     string  false  "Filter by period (overdue, today, this_week, this_month)"
+// @Param        sort_by       query     string  false  "Sort field (created_at, due_date, title)"
+// @Param        order         query     string  false  "Sort order (asc, desc)"
+// @Success      200           {object}  services.PaginatedTasksResponse
+// @Failure      400           {object}  ErrorResponse
+// @Failure      401           {object}  ErrorResponse
+// @Failure      500           {object}  ErrorResponse
+// @Router       /tasks/assigned [get]
+func (h *TaskHandler) GetAssignedTasks(c *gin.Context) {
+	userID := c.GetUint("user_id")
+
+	filters := &services.TaskFilters{}
+
+	// Parse pagination
+	if pageStr := c.Query("page"); pageStr != "" {
+		if page, err := strconv.Atoi(pageStr); err == nil && page > 0 {
+			filters.Page = page
+		}
+	}
+	if limitStr := c.Query("limit"); limitStr != "" {
+		if limit, err := strconv.Atoi(limitStr); err == nil && limit > 0 {
+			filters.Limit = limit
+		}
+	}
+
+	// Parse filters
+	if typeStr := c.Query("type"); typeStr != "" {
+		taskType := models.TaskType(typeStr)
+		filters.Type = &taskType
+	}
+
+	if completedStr := c.Query("completed"); completedStr != "" {
+		if completed, err := strconv.ParseBool(completedStr); err == nil {
+			filters.Completed = &completed
+		}
+	}
+
+	if search := c.Query("search"); search != "" {
+		filters.Search = &search
+	}
+
+	// Parse period filter
+	if period := c.Query("period"); period != "" {
+		now := time.Now()
+
+		switch period {
+		case "overdue":
+			dueDateTo := now
+			filters.DueDateTo = &dueDateTo
+			notCompleted := false
+			filters.Completed = &notCompleted
+		case "today":
+			startOfDay := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+			endOfDay := startOfDay.Add(24 * time.Hour).Add(-1 * time.Second)
+			filters.DueDateFrom = &startOfDay
+			filters.DueDateTo = &endOfDay
+		case "this_week":
+			weekday := int(now.Weekday())
+			if weekday == 0 {
+				weekday = 7
+			}
+			startOfWeek := now.AddDate(0, 0, -weekday+1)
+			startOfWeek = time.Date(startOfWeek.Year(), startOfWeek.Month(), startOfWeek.Day(), 0, 0, 0, 0, startOfWeek.Location())
+			endOfWeek := startOfWeek.AddDate(0, 0, 7).Add(-1 * time.Second)
+			filters.DueDateFrom = &startOfWeek
+			filters.DueDateTo = &endOfWeek
+		case "this_month":
+			startOfMonth := time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
+			endOfMonth := startOfMonth.AddDate(0, 1, 0).Add(-1 * time.Second)
+			filters.DueDateFrom = &startOfMonth
+			filters.DueDateTo = &endOfMonth
+		}
+	}
+
+	if dueDateFromStr := c.Query("due_date_from"); dueDateFromStr != "" {
+		if dueDateFrom, err := time.Parse(time.RFC3339, dueDateFromStr); err == nil {
+			filters.DueDateFrom = &dueDateFrom
+		}
+	}
+
+	if dueDateToStr := c.Query("due_date_to"); dueDateToStr != "" {
+		if dueDateTo, err := time.Parse(time.RFC3339, dueDateToStr); err == nil {
+			filters.DueDateTo = &dueDateTo
+		}
+	}
+
+	// Parse priority filter
+	if priorityStr := c.Query("priority"); priorityStr != "" {
+		priority := models.Priority(priorityStr)
+		filters.Priority = &priority
+	}
+
+	// Parse tag_ids filter (comma-separated)
+	if tagIDsStr := c.Query("tag_ids"); tagIDsStr != "" {
+		tagIDs := []uint{}
+		// Support both comma-separated and array format
+		if len(tagIDsStr) > 0 && tagIDsStr[0] == '[' {
+			// Array format: [1,2,3]
+			// Simple parsing for [1,2,3] format
+			cleaned := tagIDsStr[1 : len(tagIDsStr)-1] // Remove [ and ]
+			if cleaned != "" {
+				for _, idStr := range strings.Split(cleaned, ",") {
+					idStr = strings.TrimSpace(idStr)
+					if id, err := strconv.ParseUint(idStr, 10, 32); err == nil {
+						tagIDs = append(tagIDs, uint(id))
+					}
+				}
+			}
+		} else {
+			// Comma-separated format: 1,2,3
+			for _, idStr := range strings.Split(tagIDsStr, ",") {
+				idStr = strings.TrimSpace(idStr)
+				if id, err := strconv.ParseUint(idStr, 10, 32); err == nil {
+					tagIDs = append(tagIDs, uint(id))
+				}
+			}
+		}
+		if len(tagIDs) > 0 {
+			filters.TagIDs = tagIDs
+		}
+	}
+
+	// Parse sorting
+	if sortBy := c.Query("sort_by"); sortBy != "" {
+		filters.SortBy = sortBy
+	}
+	if order := c.Query("order"); order != "" {
+		filters.Order = order
+	}
+
+	result, err := h.taskService.GetAssignedByUser(userID, filters)
+	if err != nil {
+		handleError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, result)
+}
+
 // GetTask retrieves a specific task
 // @Summary      Get a task by ID
 // @Description  Retrieves a specific task by its ID

@@ -612,10 +612,10 @@
 		},
 		"securitySchemes": {
 			"BearerAuth": {
-				"type": "http",
-				"scheme": "bearer",
-				"bearerFormat": "JWT",
-				"description": "Type \"Bearer\" followed by a space and JWT token."
+				"description": "Type \"Bearer\" followed by a space and JWT token.",
+				"in": "header",
+				"name": "Authorization",
+				"type": "apiKey"
 			}
 		}
 	},
@@ -1767,6 +1767,144 @@
 				]
 			}
 		},
+		"/tasks/assigned": {
+			"get": {
+				"description": "Retrieves paginated tasks that were created/assigned by the authenticated user to other users. This allows users to follow tasks they created for others.",
+				"parameters": [
+					{
+						"description": "Page number (default: 1)",
+						"in": "query",
+						"name": "page",
+						"schema": {
+							"type": "integer"
+						}
+					},
+					{
+						"description": "Items per page (default: 10, max: 100)",
+						"in": "query",
+						"name": "limit",
+						"schema": {
+							"type": "integer"
+						}
+					},
+					{
+						"description": "Filter by task type (casa, trabalho, lazer, saude)",
+						"in": "query",
+						"name": "type",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"description": "Filter by completion status",
+						"in": "query",
+						"name": "completed",
+						"schema": {
+							"type": "boolean"
+						}
+					},
+					{
+						"description": "Search in title and description",
+						"in": "query",
+						"name": "search",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"description": "Filter tasks with due date from (ISO 8601 format)",
+						"in": "query",
+						"name": "due_date_from",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"description": "Filter tasks with due date to (ISO 8601 format)",
+						"in": "query",
+						"name": "due_date_to",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"description": "Filter by period (overdue, today, this_week, this_month)",
+						"in": "query",
+						"name": "period",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"description": "Sort field (created_at, due_date, title)",
+						"in": "query",
+						"name": "sort_by",
+						"schema": {
+							"type": "string"
+						}
+					},
+					{
+						"description": "Sort order (asc, desc)",
+						"in": "query",
+						"name": "order",
+						"schema": {
+							"type": "string"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/services.PaginatedTasksResponse"
+								}
+							}
+						},
+						"description": "OK"
+					},
+					"400": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Bad Request"
+					},
+					"401": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Unauthorized"
+					},
+					"500": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Internal Server Error"
+					}
+				},
+				"security": [
+					{
+						"BearerAuth": []
+					}
+				],
+				"summary": "List tasks assigned by user",
+				"tags": [
+					"tasks"
+				]
+			}
+		},
 		"/tasks/{id}": {
 			"delete": {
 				"description": "Deletes a task by its ID",
@@ -2329,8 +2467,7 @@
 	},
 	"servers": [
 		{
-			"url": "http://localhost:8080/api/v1",
-			"description": "Local development server"
+			"url": "https://localhost:8080/api/v1"
 		}
 	]
 }

@@ -12,6 +12,7 @@ type TaskService interface {
 	Create(userID uint, req *CreateTaskRequest) (*models.Task, error)
 	GetByID(userID, taskID uint) (*models.Task, error)
 	GetByUserID(userID uint, filters *TaskFilters) (*PaginatedTasksResponse, error)
+	GetAssignedByUser(assignedByID uint, filters *TaskFilters) (*PaginatedTasksResponse, error)
 	Update(userID, taskID uint, req *UpdateTaskRequest) (*models.Task, error)
 	Delete(userID, taskID uint) error
 }
@@ -204,6 +205,71 @@ func (s *taskService) GetByUserID(userID uint, filters *TaskFilters) (*Paginated
 	}
 
 	tasks, total, err := s.taskRepo.FindByUserID(userID, repoFilters)
+	if err != nil {
+		return nil, errors.NewInternalServerError(err)
+	}
+
+	// Calculate total pages
+	totalPages := int((total + int64(limit) - 1) / int64(limit))
+	if totalPages == 0 {
+		totalPages = 1
+	}
+
+	return &PaginatedTasksResponse{
+		Tasks:      tasks,
+		Total:      total,
+		Page:       page,
+		Limit:      limit,
+		TotalPages: totalPages,
+	}, nil
+}
+
+func (s *taskService) GetAssignedByUser(assignedByID uint, filters *TaskFilters) (*PaginatedTasksResponse, error) {
+	repoFilters := &repositories.TaskFilters{}
+
+	// Set default pagination
+	page := 1
+	limit := 10
+	if filters != nil {
+		if filters.Page > 0 {
+			page = filters.Page
+		}
+		if filters.Limit > 0 {
+			limit = filters.Limit
+			// Maximum limit is 100
+			if limit > 100 {
+				limit = 100
+			}
+		}
+		repoFilters.Page = page
+		repoFilters.Limit = limit
+
+		// Apply filters
+		if filters.Type != nil {
+			if !isValidTaskType(*filters.Type) {
+				return nil, errors.NewInvalidInputError("Invalid task type filter")
+			}
+			repoFilters.Type = filters.Type
+		}
+		if filters.Priority != nil {
+			if !isValidPriority(*filters.Priority) {
+				return nil, errors.NewInvalidInputError("Invalid priority filter")
+			}
+			repoFilters.Priority = filters.Priority
+		}
+		repoFilters.Completed = filters.Completed
+		repoFilters.Search = filters.Search
+		repoFilters.DueDateFrom = filters.DueDateFrom
+		repoFilters.DueDateTo = filters.DueDateTo
+		repoFilters.TagIDs = filters.TagIDs
+		repoFilters.SortBy = filters.SortBy
+		repoFilters.Order = filters.Order
+	} else {
+		repoFilters.Page = page
+		repoFilters.Limit = limit
+	}
+
+	tasks, total, err := s.taskRepo.FindByAssignedBy(assignedByID, repoFilters)
 	if err != nil {
 		return nil, errors.NewInternalServerError(err)
 	}
