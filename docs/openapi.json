@@ -158,6 +158,36 @@
 				],
 				"type": "object"
 			},
+			"handlers.PaginatedUsersResponse": {
+				"properties": {
+					"limit": {
+						"type": "integer"
+					},
+					"page": {
+						"type": "integer"
+					},
+					"total": {
+						"type": "integer"
+					},
+					"total_pages": {
+						"type": "integer"
+					},
+					"users": {
+						"items": {
+							"$ref": "#/components/schemas/models.User"
+						},
+						"type": "array"
+					}
+				},
+				"required": [
+					"limit",
+					"page",
+					"total",
+					"total_pages",
+					"users"
+				],
+				"type": "object"
+			},
 			"handlers.RegisterRequest": {
 				"properties": {
 					"email": {
@@ -2083,6 +2113,80 @@
 				"summary": "Get comments for a task",
 				"tags": [
 					"comments"
+				]
+			}
+		},
+		"/users": {
+			"get": {
+				"description": "Retrieves a paginated list of all users in the system. Returns only public information (id, username, email) for use in task assignment.",
+				"parameters": [
+					{
+						"description": "Page number (default: 1)",
+						"in": "query",
+						"name": "page",
+						"schema": {
+							"type": "integer"
+						}
+					},
+					{
+						"description": "Items per page (default: 10, max: 100)",
+						"in": "query",
+						"name": "limit",
+						"schema": {
+							"type": "integer"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.PaginatedUsersResponse"
+								}
+							}
+						},
+						"description": "OK"
+					},
+					"400": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Bad Request"
+					},
+					"401": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Unauthorized"
+					},
+					"500": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Internal Server Error"
+					}
+				},
+				"security": [
+					{
+						"BearerAuth": []
+					}
+				],
+				"summary": "List users",
+				"tags": [
+					"users"
 				]
 			}
 		},

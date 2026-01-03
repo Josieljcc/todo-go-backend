@@ -84,7 +84,7 @@ func main() {
 	taskHandler := handlers.NewTaskHandler(taskService)
 	tagHandler := handlers.NewTagHandler(tagService)
 	commentHandler := handlers.NewCommentHandler(commentService)
-	userHandler := handlers.NewUserHandler(notificationService)
+	userHandler := handlers.NewUserHandler(notificationService, userRepo)
 
 	// Start notification scheduler
 	go notifications.StartScheduler(cfg, notificationService)
@@ -212,7 +212,8 @@ func main() {
 		protected.PUT("/comments/:id", commentHandler.UpdateComment)
 		protected.DELETE("/comments/:id", commentHandler.DeleteComment)
 
-		// User settings routes
+		// User routes
+		protected.GET("/users", userHandler.GetUsers)
 		protected.PUT("/users/telegram-chat-id", userHandler.UpdateTelegramChatID)
 		protected.PUT("/users/notifications-enabled", userHandler.UpdateNotificationsEnabled)
 

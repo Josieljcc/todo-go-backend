@@ -2,10 +2,12 @@ package handlers
 
 import (
 	"net/http"
+	"strconv"
 	"todo-go-backend/internal/database"
 	"todo-go-backend/internal/errors"
 	"todo-go-backend/internal/models"
 	"todo-go-backend/internal/notifications"
+	"todo-go-backend/internal/repositories"
 
 	"github.com/gin-gonic/gin"
 )
@@ -13,12 +15,14 @@ import (
 // UserHandler manages user handlers
 type UserHandler struct {
 	notificationService *notifications.NotificationService
+	userRepo           repositories.UserRepository
 }
 
 // NewUserHandler creates a new instance of UserHandler
-func NewUserHandler(notificationService *notifications.NotificationService) *UserHandler {
+func NewUserHandler(notificationService *notifications.NotificationService, userRepo repositories.UserRepository) *UserHandler {
 	return &UserHandler{
 		notificationService: notificationService,
+		userRepo:           userRepo,
 	}
 }
 
@@ -213,4 +217,71 @@ func (h *UserHandler) GetNotificationDebugInfo(c *gin.Context) {
 	}
 
 	handleSuccess(c, http.StatusOK, "Debug information retrieved", debugInfo)
+}
+
+// PaginatedUsersResponse represents a paginated response for users
+type PaginatedUsersResponse struct {
+	Users      []models.User `json:"users"`
+	Total      int64         `json:"total"`
+	Page       int           `json:"page"`
+	Limit      int           `json:"limit"`
+	TotalPages int           `json:"total_pages"`
+}
+
+// GetUsers lists all users in the system with pagination
+// @Summary      List users
+// @Description  Retrieves a paginated list of all users in the system. Returns only public information (id, username, email) for use in task assignment.
+// @Tags         users
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        page   query     int     false  "Page number (default: 1)"
+// @Param        limit  query     int     false  "Items per page (default: 10, max: 100)"
+// @Success      200    {object}  PaginatedUsersResponse
+// @Failure      400    {object}  ErrorResponse
+// @Failure      401    {object}  ErrorResponse
+// @Failure      500    {object}  ErrorResponse
+// @Router       /users [get]
+func (h *UserHandler) GetUsers(c *gin.Context) {
+	// Parse pagination parameters
+	page := 1
+	limit := 10
+
+	if pageStr := c.Query("page"); pageStr != "" {
+		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
+			page = p
+		}
+	}
+
+	if limitStr := c.Query("limit"); limitStr != "" {
+		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 {
+			limit = l
+			// Maximum limit is 100
+			if limit > 100 {
+				limit = 100
+			}
+		}
+	}
+
+	users, total, err := h.userRepo.FindAllPaginated(page, limit)
+	if err != nil {
+		handleError(c, errors.NewInternalServerError(err))
+		return
+	}
+
+	// Calculate total pages
+	totalPages := int((total + int64(limit) - 1) / int64(limit))
+	if totalPages == 0 {
+		totalPages = 1
+	}
+
+	response := PaginatedUsersResponse{
+		Users:      users,
+		Total:      total,
+		Page:       page,
+		Limit:      limit,
+		TotalPages: totalPages,
+	}
+
+	c.JSON(http.StatusOK, response)
 }
