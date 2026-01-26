@@ -6,6 +6,15 @@ on:
       - main
       - master
   workflow_dispatch:
+    inputs:
+      wipe_db:
+        description: "DANGER: apagar TODOS os dados do banco (MySQL) antes de subir a API"
+        required: false
+        default: "false"
+      wipe_db_confirm:
+        description: "Digite WIPE para confirmar (obrigatório quando wipe_db=true)"
+        required: false
+        default: ""
 
 jobs:
   deploy:
@@ -56,6 +65,34 @@ jobs:
       - name: Pull latest images (if using pre-built images)
         run: |
           docker compose pull || true
+
+      - name: Start MySQL only
+        run: |
+          docker compose up -d mysql
+
+      - name: Wait for MySQL to be healthy
+        run: |
+          echo "Waiting for MySQL to be ready..."
+          for i in {1..60}; do
+            if docker compose exec -T mysql mysqladmin ping -h localhost -u root -p${{ secrets.MYSQL_ROOT_PASSWORD }} --silent; then
+              echo "MySQL is ready!"
+              break
+            fi
+            echo "Waiting... ($i/60)"
+            sleep 2
+          done
+
+      - name: Validate wipe confirmation
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.wipe_db == 'true' && github.event.inputs.wipe_db_confirm != 'WIPE' }}
+        run: |
+          echo "ERROR: wipe_db=true requires wipe_db_confirm=WIPE" >&2
+          exit 1
+
+      - name: Wipe database (manual dispatch only)
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.wipe_db == 'true' && github.event.inputs.wipe_db_confirm == 'WIPE' }}
+        run: |
+          echo "WIPE_DB enabled. Deleting ALL records..."
+          docker compose exec -T -e CONFIRM=YES mysql sh /scripts/wipe-db.sh
 
       - name: Build and start services
         run: |
