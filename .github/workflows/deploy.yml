@@ -92,7 +92,53 @@ jobs:
         if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.wipe_db == 'true' && github.event.inputs.wipe_db_confirm == 'WIPE' }}
         run: |
           echo "WIPE_DB enabled. Deleting ALL records..."
-          docker compose exec -T -e CONFIRM=YES mysql sh /scripts/wipe-db.sh
+          docker compose exec -T -e CONFIRM=YES mysql sh -ceu '
+            if [ -f /scripts/wipe-db.sh ]; then
+              sh /scripts/wipe-db.sh
+              exit 0
+            fi
+
+            echo "WARN: /scripts/wipe-db.sh not found. Running inline wipe..."
+
+            if [ "${CONFIRM:-}" != "YES" ]; then
+              echo "Refusing to run: set CONFIRM=YES" >&2
+              exit 1
+            fi
+
+            DB_NAME="${MYSQL_DATABASE:-${DATABASE_NAME:-}}"
+            if [ -z "$DB_NAME" ]; then
+              echo "Database name not set (MYSQL_DATABASE/DATABASE_NAME)." >&2
+              exit 1
+            fi
+
+            if [ -n "${MYSQL_ROOT_PASSWORD:-}" ]; then
+              MYSQL_USER="root"
+              MYSQL_PWD="${MYSQL_ROOT_PASSWORD}"
+            else
+              MYSQL_USER="${MYSQL_USER:-${DATABASE_USER:-}}"
+              MYSQL_PWD="${MYSQL_PASSWORD:-${DATABASE_PASSWORD:-}}"
+            fi
+
+            if [ -z "${MYSQL_USER:-}" ] || [ -z "${MYSQL_PWD:-}" ]; then
+              echo "MySQL credentials not set." >&2
+              exit 1
+            fi
+
+            BASE_ARGS="-h127.0.0.1 -P3306 -u${MYSQL_USER}"
+
+            STMT_LIST="$(MYSQL_PWD="$MYSQL_PWD" mysql $BASE_ARGS -N -B -e "SELECT CONCAT('DELETE FROM \`', table_name, '\`;') FROM information_schema.tables WHERE table_schema='${DB_NAME}' AND table_type='BASE TABLE';")"
+
+            if [ -z "$STMT_LIST" ]; then
+              echo "No tables found in schema '${DB_NAME}'. Nothing to wipe."
+              exit 0
+            fi
+
+            {
+              echo "SET FOREIGN_KEY_CHECKS=0;"
+              printf "%s\n" "$STMT_LIST"
+              echo "SET FOREIGN_KEY_CHECKS=1;"
+            } | MYSQL_PWD="$MYSQL_PWD" mysql $BASE_ARGS "$DB_NAME"
+          '
 
       - name: Build and start services
         run: |
