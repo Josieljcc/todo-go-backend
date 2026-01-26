@@ -92,53 +92,51 @@ jobs:
         if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.wipe_db == 'true' && github.event.inputs.wipe_db_confirm == 'WIPE' }}
         run: |
           echo "WIPE_DB enabled. Deleting ALL records..."
-          docker compose exec -T -e CONFIRM=YES mysql sh -ceu '
-            if [ -f /scripts/wipe-db.sh ]; then
-              sh /scripts/wipe-db.sh
-              exit 0
-            fi
+          docker compose exec -T -e CONFIRM=YES mysql sh -s <<'EOF'
+          set -eu
 
-            echo "WARN: /scripts/wipe-db.sh not found. Running inline wipe..."
+          if [ -f /scripts/wipe-db.sh ]; then
+            sh /scripts/wipe-db.sh
+            exit 0
+          fi
 
-            if [ "${CONFIRM:-}" != "YES" ]; then
-              echo "Refusing to run: set CONFIRM=YES" >&2
-              exit 1
-            fi
+          echo "WARN: /scripts/wipe-db.sh not found. Running inline wipe..."
 
-            DB_NAME="${MYSQL_DATABASE:-${DATABASE_NAME:-}}"
-            if [ -z "$DB_NAME" ]; then
-              echo "Database name not set (MYSQL_DATABASE/DATABASE_NAME)." >&2
-              exit 1
-            fi
+          if [ "${CONFIRM:-}" != "YES" ]; then
+            echo "Refusing to run: set CONFIRM=YES" >&2
+            exit 1
+          fi
 
-            if [ -n "${MYSQL_ROOT_PASSWORD:-}" ]; then
-              MYSQL_USER="root"
-              MYSQL_PWD="${MYSQL_ROOT_PASSWORD}"
-            else
-              MYSQL_USER="${MYSQL_USER:-${DATABASE_USER:-}}"
-              MYSQL_PWD="${MYSQL_PASSWORD:-${DATABASE_PASSWORD:-}}"
-            fi
+          # Inside the mysql container we can use DATABASE() and avoid tricky quoting.
+          if [ -n "${MYSQL_ROOT_PASSWORD:-}" ]; then
+            MYSQL_USER="root"
+            MYSQL_PWD="${MYSQL_ROOT_PASSWORD}"
+          else
+            MYSQL_USER="${MYSQL_USER:-${DATABASE_USER:-}}"
+            MYSQL_PWD="${MYSQL_PASSWORD:-${DATABASE_PASSWORD:-}}"
+          fi
 
-            if [ -z "${MYSQL_USER:-}" ] || [ -z "${MYSQL_PWD:-}" ]; then
-              echo "MySQL credentials not set." >&2
-              exit 1
-            fi
+          if [ -z "${MYSQL_USER:-}" ] || [ -z "${MYSQL_PWD:-}" ]; then
+            echo "MySQL credentials not set." >&2
+            exit 1
+          fi
 
-            BASE_ARGS="-h127.0.0.1 -P3306 -u${MYSQL_USER}"
+          BASE_ARGS="-h127.0.0.1 -P3306 -u${MYSQL_USER}"
 
-            STMT_LIST="$(MYSQL_PWD="$MYSQL_PWD" mysql $BASE_ARGS -N -B -e "SELECT CONCAT('DELETE FROM \`', table_name, '\`;') FROM information_schema.tables WHERE table_schema='${DB_NAME}' AND table_type='BASE TABLE';")"
+          # Generate DELETE statements without embedding quotes/backticks in the runner script.
+          STMT_LIST="$(MYSQL_PWD="$MYSQL_PWD" mysql $BASE_ARGS -N -B -e "SELECT CONCAT(0x44454c4554452046524f4d20, CHAR(96), table_name, CHAR(96), 0x3b) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_type = 0x42415345205441424c45;")"
 
-            if [ -z "$STMT_LIST" ]; then
-              echo "No tables found in schema '${DB_NAME}'. Nothing to wipe."
-              exit 0
-            fi
+          if [ -z "$STMT_LIST" ]; then
+            echo "No tables found. Nothing to wipe."
+            exit 0
+          fi
 
-            {
-              echo "SET FOREIGN_KEY_CHECKS=0;"
-              printf "%s\n" "$STMT_LIST"
-              echo "SET FOREIGN_KEY_CHECKS=1;"
-            } | MYSQL_PWD="$MYSQL_PWD" mysql $BASE_ARGS "$DB_NAME"
-          '
+          {
+            echo "SET FOREIGN_KEY_CHECKS=0;"
+            printf "%s\n" "$STMT_LIST"
+            echo "SET FOREIGN_KEY_CHECKS=1;"
+          } | MYSQL_PWD="$MYSQL_PWD" mysql $BASE_ARGS
+          EOF
 
       - name: Build and start services
         run: |
