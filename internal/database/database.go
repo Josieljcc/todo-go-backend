@@ -45,6 +45,7 @@ func Connect(cfg *config.Config) error {
 	err = DB.AutoMigrate(
 		&models.User{},
 		&models.Task{},
+		&models.TaskSharedWith{},
 		&models.Tag{},
 		&models.Comment{},
 		&models.Notification{},

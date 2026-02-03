@@ -15,6 +15,9 @@ type TaskRepository interface {
 	Update(task *models.Task) error
 	Delete(id uint) error
 	Exists(id uint) (bool, error)
+	AddSharedWith(taskID, userID uint) error
+	RemoveSharedWith(taskID, userID uint) error
+	UserCanAccessTask(taskID, userID uint) (bool, error)
 }
 
 // TaskFilters defines filters for task search
@@ -49,6 +52,7 @@ func (r *taskRepository) FindByID(id uint) (*models.Task, error) {
 	if err := database.DB.
 		Preload("User").
 		Preload("AssignedByUser").
+		Preload("SharedWithUsers").
 		Preload("Tags").
 		First(&task, id).Error; err != nil {
 		return nil, err
@@ -60,8 +64,9 @@ func (r *taskRepository) FindByUserID(userID uint, filters *TaskFilters) ([]mode
 	var tasks []models.Task
 	var total int64
 
-	// Base query
-	query := database.DB.Model(&models.Task{}).Where("user_id = ?", userID)
+	// Base query: tasks owned by user OR shared with user
+	subQuery := database.DB.Table("task_shared_with").Select("task_id").Where("user_id = ?", userID)
+	query := database.DB.Model(&models.Task{}).Where("user_id = ? OR id IN (?)", userID, subQuery)
 
 	// Apply filters
 	if filters != nil {
@@ -134,7 +139,7 @@ func (r *taskRepository) FindByUserID(userID uint, filters *TaskFilters) ([]mode
 	}
 
 	// Execute query with preloads
-	if err := query.Preload("AssignedByUser").Preload("Tags").Find(&tasks).Error; err != nil {
+	if err := query.Preload("User").Preload("AssignedByUser").Preload("SharedWithUsers").Preload("Tags").Find(&tasks).Error; err != nil {
 		return nil, 0, err
 	}
 
@@ -216,11 +221,39 @@ func (r *taskRepository) FindByAssignedBy(assignedByID uint, filters *TaskFilter
 	}
 
 	// Execute query with preloads
-	if err := query.Preload("User").Preload("Tags").Find(&tasks).Error; err != nil {
+	if err := query.Preload("User").Preload("AssignedByUser").Preload("SharedWithUsers").Preload("Tags").Find(&tasks).Error; err != nil {
 		return nil, 0, err
 	}
 
 	return tasks, total, nil
+}
+
+func (r *taskRepository) AddSharedWith(taskID, userID uint) error {
+	// FirstOrCreate avoids duplicate (DB-agnostic)
+	return database.DB.Where(models.TaskSharedWith{TaskID: taskID, UserID: userID}).
+		FirstOrCreate(&models.TaskSharedWith{TaskID: taskID, UserID: userID}).Error
+}
+
+func (r *taskRepository) RemoveSharedWith(taskID, userID uint) error {
+	return database.DB.Delete(&models.TaskSharedWith{}, "task_id = ? AND user_id = ?", taskID, userID).Error
+}
+
+func (r *taskRepository) UserCanAccessTask(taskID, userID uint) (bool, error) {
+	var task models.Task
+	if err := database.DB.Select("id", "user_id", "assigned_by").First(&task, taskID).Error; err != nil {
+		return false, err
+	}
+	if task.UserID == userID {
+		return true, nil
+	}
+	if task.AssignedBy != nil && *task.AssignedBy == userID {
+		return true, nil
+	}
+	var count int64
+	if err := database.DB.Table("task_shared_with").Where("task_id = ? AND user_id = ?", taskID, userID).Count(&count).Error; err != nil {
+		return false, err
+	}
+	return count > 0, nil
 }
 
 func (r *taskRepository) Update(task *models.Task) error {

@@ -35,24 +35,38 @@ const (
 )
 
 // Task represents a task in the system
-// A task belongs to a user and can be assigned by another user
+// A task belongs to a user and can be assigned by another user.
+// Tasks can be shared with other users (many-to-many); when a user creates a task for another, both have access.
 type Task struct {
-	ID             uint           `json:"id" gorm:"primaryKey"`
-	Title          string         `json:"title" gorm:"type:varchar(200);not null"`
-	Description    string         `json:"description" gorm:"type:text"`
-	Type           TaskType       `json:"type" gorm:"type:varchar(20);not null"`
-	Priority       Priority       `json:"priority" gorm:"type:varchar(20);default:'media'"` // Task priority
-	DueDate        *time.Time     `json:"due_date"`                                         // Deadline for task completion
-	Completed      bool           `json:"completed" gorm:"default:false"`
-	UserID         uint           `json:"user_id" gorm:"not null;index"` // ID of the user responsible for the task
-	AssignedBy     *uint          `json:"assigned_by"`                   // ID of the user who created/assigned the task (nil if created by the user themselves)
-	User           User           `json:"user,omitempty" gorm:"foreignKey:UserID"`
-	AssignedByUser *User          `json:"assigned_by_user,omitempty" gorm:"foreignKey:AssignedBy"`
-	Tags           []Tag          `json:"tags,omitempty" gorm:"many2many:task_tags;"` // Tags associated with the task
-	Comments       []Comment      `json:"comments,omitempty" gorm:"foreignKey:TaskID"` // Comments on the task
-	CreatedAt      time.Time      `json:"created_at"`
-	UpdatedAt      time.Time      `json:"updated_at"`
-	DeletedAt      gorm.DeletedAt `json:"-" gorm:"index"`
+	ID               uint           `json:"id" gorm:"primaryKey"`
+	Title            string         `json:"title" gorm:"type:varchar(200);not null"`
+	Description      string         `json:"description" gorm:"type:text"`
+	Type             TaskType       `json:"type" gorm:"type:varchar(20);not null"`
+	Priority         Priority       `json:"priority" gorm:"type:varchar(20);default:'media'"` // Task priority
+	DueDate          *time.Time     `json:"due_date"`                                         // Deadline for task completion
+	Completed        bool           `json:"completed" gorm:"default:false"`
+	UserID           uint           `json:"user_id" gorm:"not null;index"` // ID of the user responsible for the task (owner)
+	AssignedBy       *uint          `json:"assigned_by"`                   // ID of the user who created/assigned the task (nil if created by the user themselves)
+	User             User           `json:"user,omitempty" gorm:"foreignKey:UserID"`
+	AssignedByUser   *User          `json:"assigned_by_user,omitempty" gorm:"foreignKey:AssignedBy"`
+	SharedWithUsers  []User         `json:"shared_with,omitempty" gorm:"many2many:task_shared_with;"` // Users with whom the task is shared (no limit)
+	Tags             []Tag          `json:"tags,omitempty" gorm:"many2many:task_tags;"`             // Tags associated with the task
+	Comments         []Comment      `json:"comments,omitempty" gorm:"foreignKey:TaskID"`           // Comments on the task
+	CreatedAt        time.Time      `json:"created_at"`
+	UpdatedAt        time.Time      `json:"updated_at"`
+	DeletedAt        gorm.DeletedAt `json:"-" gorm:"index"`
+}
+
+// TaskSharedWith is the join table for sharing tasks with users (task_id, user_id).
+// Used for FirstOrCreate/Delete; the same table is used by Task.SharedWithUsers many2many.
+type TaskSharedWith struct {
+	TaskID uint `gorm:"primaryKey"`
+	UserID uint `gorm:"primaryKey"`
+}
+
+// TableName returns the table name for TaskSharedWith
+func (TaskSharedWith) TableName() string {
+	return "task_shared_with"
 }
 
 // Tag represents a custom tag that can be associated with tasks

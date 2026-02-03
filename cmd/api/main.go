@@ -200,6 +200,8 @@ func main() {
 		protected.GET("/tasks/:id", taskHandler.GetTask)
 		protected.PUT("/tasks/:id", taskHandler.UpdateTask)
 		protected.DELETE("/tasks/:id", taskHandler.DeleteTask)
+		protected.POST("/tasks/:id/share", taskHandler.ShareTask)
+		protected.DELETE("/tasks/:id/share/:user_id", taskHandler.UnshareTask)
 
 		// Tags routes
 		protected.GET("/tags", tagHandler.GetTags)

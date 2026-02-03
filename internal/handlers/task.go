@@ -35,6 +35,11 @@ type CreateTaskRequest struct {
 	TagIDs      []uint          `json:"tag_ids"`                                                                    // Optional: IDs of tags to associate
 }
 
+// ShareTaskRequest represents a request to share a task with users
+type ShareTaskRequest struct {
+	UserIDs []uint `json:"user_ids" binding:"required,min=1" example:"2,3,4"`
+}
+
 // UpdateTaskRequest represents a task update request
 type UpdateTaskRequest struct {
 	Title       *string          `json:"title" example:"Updated title"`
@@ -549,4 +554,79 @@ func (h *TaskHandler) DeleteTask(c *gin.Context) {
 	}
 
 	handleSuccess(c, http.StatusOK, "Task deleted successfully", nil)
+}
+
+// ShareTask shares a task with other users (owner only). No limit on how many users.
+// @Summary      Share a task with users
+// @Description  Adds the given users to the task's shared list so they can view and update the task. Only the task owner can share. When a user creates a task for another, the task is already shared between the two.
+// @Tags         tasks
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id       path      int               true  "Task ID"
+// @Param        request  body      ShareTaskRequest  true  "User IDs to share with"
+// @Success      200      {object}  SuccessResponse
+// @Failure      400      {object}  ErrorResponse
+// @Failure      401      {object}  ErrorResponse
+// @Failure      403      {object}  ErrorResponse
+// @Failure      404      {object}  ErrorResponse
+// @Failure      500      {object}  ErrorResponse
+// @Router       /tasks/{id}/share [post]
+func (h *TaskHandler) ShareTask(c *gin.Context) {
+	userID := c.GetUint("user_id")
+	taskID, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		handleError(c, errors.NewInvalidInputError("Invalid task ID"))
+		return
+	}
+
+	var req ShareTaskRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		handleError(c, errors.NewInvalidInputError(err.Error()))
+		return
+	}
+
+	if err := h.taskService.ShareTask(userID, uint(taskID), req.UserIDs); err != nil {
+		handleError(c, err)
+		return
+	}
+
+	handleSuccess(c, http.StatusOK, "Task shared successfully", nil)
+}
+
+// UnshareTask removes a user from the task's shared list (owner only).
+// @Summary      Unshare a task with a user
+// @Description  Removes the given user from the task's shared list. Only the task owner can unshare.
+// @Tags         tasks
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        id       path      int  true  "Task ID"
+// @Param        user_id  path      int  true  "User ID to remove from shared list"
+// @Success      200      {object}  SuccessResponse
+// @Failure      400      {object}  ErrorResponse
+// @Failure      401      {object}  ErrorResponse
+// @Failure      403      {object}  ErrorResponse
+// @Failure      404      {object}  ErrorResponse
+// @Failure      500      {object}  ErrorResponse
+// @Router       /tasks/{id}/share/{user_id} [delete]
+func (h *TaskHandler) UnshareTask(c *gin.Context) {
+	userID := c.GetUint("user_id")
+	taskID, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		handleError(c, errors.NewInvalidInputError("Invalid task ID"))
+		return
+	}
+	sharedUserID, err := strconv.ParseUint(c.Param("user_id"), 10, 32)
+	if err != nil {
+		handleError(c, errors.NewInvalidInputError("Invalid user ID"))
+		return
+	}
+
+	if err := h.taskService.UnshareTask(userID, uint(taskID), uint(sharedUserID)); err != nil {
+		handleError(c, err)
+		return
+	}
+
+	handleSuccess(c, http.StatusOK, "User removed from shared list", nil)
 }

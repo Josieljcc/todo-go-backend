@@ -401,6 +401,28 @@ curl -X GET "http://localhost:8080/api/v1/tasks?type=casa&completed=false" \
   -H "Authorization: Bearer <seu-token>"
 ```
 
+### Compartilhar tarefa com outros usuários
+
+O dono da tarefa pode compartilhar com quantos usuários quiser (sem limite). Quem recebe o compartilhamento pode ver e editar a tarefa.
+
+```bash
+curl -X POST http://localhost:8080/api/v1/tasks/1/share \
+  -H "Authorization: Bearer <seu-token>" \
+  -H "Content-Type: application/json" \
+  -d '{"user_ids": [2, 3, 4]}'
+```
+
+### Remover compartilhamento de uma tarefa
+
+Apenas o dono da tarefa pode remover um usuário da lista de compartilhamento:
+
+```bash
+curl -X DELETE http://localhost:8080/api/v1/tasks/1/share/2 \
+  -H "Authorization: Bearer <seu-token>"
+```
+
+**Nota:** Quando um usuário cria uma tarefa para outro (`user_id` no body do POST), a tarefa já fica compartilhada entre os dois automaticamente.
+
 ## Testes
 
 Execute os testes com:

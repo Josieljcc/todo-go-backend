@@ -15,6 +15,8 @@ type TaskService interface {
 	GetAssignedByUser(assignedByID uint, filters *TaskFilters) (*PaginatedTasksResponse, error)
 	Update(userID, taskID uint, req *UpdateTaskRequest) (*models.Task, error)
 	Delete(userID, taskID uint) error
+	ShareTask(ownerID, taskID uint, userIDs []uint) error
+	UnshareTask(ownerID, taskID uint, sharedUserID uint) error
 }
 
 // CreateTaskRequest represents a task creation request
@@ -118,7 +120,8 @@ func (s *taskService) Create(userID uint, req *CreateTaskRequest) (*models.Task,
 		tags = foundTags
 	}
 
-	// Create task
+	// Create task (when creating for another user, AssignedBy = creator so they can see it)
+	assignedBy := &userID
 	task := &models.Task{
 		Title:       req.Title,
 		Description: req.Description,
@@ -126,13 +129,20 @@ func (s *taskService) Create(userID uint, req *CreateTaskRequest) (*models.Task,
 		Priority:    priority,
 		DueDate:     req.DueDate,
 		UserID:      targetUserID,
-		AssignedBy:  &userID,
+		AssignedBy:  assignedBy,
 		Completed:   false,
 		Tags:        tags,
 	}
 
 	if err := s.taskRepo.Create(task); err != nil {
 		return nil, errors.NewInternalServerError(err)
+	}
+
+	// When a user creates a task for another, share it with the creator so both have access
+	if req.UserID != nil && *req.UserID != userID {
+		if err := s.taskRepo.AddSharedWith(task.ID, userID); err != nil {
+			return nil, errors.NewInternalServerError(err)
+		}
 	}
 
 	// Reload with relationships
@@ -150,8 +160,8 @@ func (s *taskService) GetByID(userID, taskID uint) (*models.Task, error) {
 		return nil, errors.NewTaskNotFoundError()
 	}
 
-	// Check if task belongs to user
-	if task.UserID != userID {
+	canAccess, err := s.taskRepo.UserCanAccessTask(taskID, userID)
+	if err != nil || !canAccess {
 		return nil, errors.NewForbiddenError()
 	}
 
@@ -296,8 +306,8 @@ func (s *taskService) Update(userID, taskID uint, req *UpdateTaskRequest) (*mode
 		return nil, errors.NewTaskNotFoundError()
 	}
 
-	// Check if task belongs to user
-	if task.UserID != userID {
+	canAccess, err := s.taskRepo.UserCanAccessTask(taskID, userID)
+	if err != nil || !canAccess {
 		return nil, errors.NewForbiddenError()
 	}
 
@@ -333,8 +343,8 @@ func (s *taskService) Update(userID, taskID uint, req *UpdateTaskRequest) (*mode
 			// Remove all tags
 			task.Tags = []models.Tag{}
 		} else {
-			// Validate and set new tags
-			foundTags, err := s.tagRepo.FindByIDs(*req.TagIDs, userID)
+			// Validate and set new tags (use task owner for tag ownership)
+			foundTags, err := s.tagRepo.FindByIDs(*req.TagIDs, task.UserID)
 			if err != nil {
 				return nil, errors.NewInvalidInputError("One or more tags not found or don't belong to the user")
 			}
@@ -365,7 +375,7 @@ func (s *taskService) Delete(userID, taskID uint) error {
 		return errors.NewTaskNotFoundError()
 	}
 
-	// Check if task belongs to user
+	// Only the task owner can delete the task
 	if task.UserID != userID {
 		return errors.NewForbiddenError()
 	}
@@ -374,6 +384,44 @@ func (s *taskService) Delete(userID, taskID uint) error {
 		return errors.NewInternalServerError(err)
 	}
 
+	return nil
+}
+
+// ShareTask adds users to the task's shared list. Only the task owner can share.
+func (s *taskService) ShareTask(ownerID, taskID uint, userIDs []uint) error {
+	task, err := s.taskRepo.FindByID(taskID)
+	if err != nil {
+		return errors.NewTaskNotFoundError()
+	}
+	if task.UserID != ownerID {
+		return errors.NewForbiddenError()
+	}
+	for _, uid := range userIDs {
+		if uid == ownerID {
+			continue // owner already has access
+		}
+		if _, err := s.userRepo.FindByID(uid); err != nil {
+			return errors.NewInvalidInputError("One or more user IDs are invalid")
+		}
+		if err := s.taskRepo.AddSharedWith(taskID, uid); err != nil {
+			return errors.NewInternalServerError(err)
+		}
+	}
+	return nil
+}
+
+// UnshareTask removes a user from the task's shared list. Only the task owner can unshare.
+func (s *taskService) UnshareTask(ownerID, taskID uint, sharedUserID uint) error {
+	task, err := s.taskRepo.FindByID(taskID)
+	if err != nil {
+		return errors.NewTaskNotFoundError()
+	}
+	if task.UserID != ownerID {
+		return errors.NewForbiddenError()
+	}
+	if err := s.taskRepo.RemoveSharedWith(taskID, sharedUserID); err != nil {
+		return errors.NewInternalServerError(err)
+	}
 	return nil
 }
 

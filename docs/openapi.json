@@ -213,6 +213,26 @@
 				],
 				"type": "object"
 			},
+			"handlers.ShareTaskRequest": {
+				"properties": {
+					"user_ids": {
+						"example": [
+							2,
+							3,
+							4
+						],
+						"items": {
+							"type": "integer"
+						},
+						"minItems": 1,
+						"type": "array"
+					}
+				},
+				"required": [
+					"user_ids"
+				],
+				"type": "object"
+			},
 			"handlers.SuccessResponse": {
 				"properties": {
 					"data": {},
@@ -484,6 +504,13 @@
 						],
 						"description": "Task priority"
 					},
+					"shared_with": {
+						"description": "Users with whom the task is shared (no limit)",
+						"items": {
+							"$ref": "#/components/schemas/models.User"
+						},
+						"type": "array"
+					},
 					"tags": {
 						"description": "Tags associated with the task",
 						"items": {
@@ -504,7 +531,7 @@
 						"$ref": "#/components/schemas/models.User"
 					},
 					"user_id": {
-						"description": "ID of the user responsible for the task",
+						"description": "ID of the user responsible for the task (owner)",
 						"type": "integer"
 					}
 				},
@@ -518,6 +545,7 @@
 					"due_date",
 					"id",
 					"priority",
+					"shared_with",
 					"tags",
 					"title",
 					"type",
@@ -2251,6 +2279,201 @@
 				"summary": "Get comments for a task",
 				"tags": [
 					"comments"
+				]
+			}
+		},
+		"/tasks/{id}/share": {
+			"post": {
+				"description": "Adds the given users to the task's shared list so they can view and update the task. Only the task owner can share. When a user creates a task for another, the task is already shared between the two.",
+				"parameters": [
+					{
+						"description": "Task ID",
+						"in": "path",
+						"name": "id",
+						"required": true,
+						"schema": {
+							"type": "integer"
+						}
+					}
+				],
+				"requestBody": {
+					"content": {
+						"application/json": {
+							"schema": {
+								"$ref": "#/components/schemas/handlers.ShareTaskRequest"
+							}
+						}
+					},
+					"description": "User IDs to share with",
+					"required": true,
+					"x-originalParamName": "request"
+				},
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.SuccessResponse"
+								}
+							}
+						},
+						"description": "OK"
+					},
+					"400": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Bad Request"
+					},
+					"401": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Unauthorized"
+					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Forbidden"
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Not Found"
+					},
+					"500": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Internal Server Error"
+					}
+				},
+				"security": [
+					{
+						"BearerAuth": []
+					}
+				],
+				"summary": "Share a task with users",
+				"tags": [
+					"tasks"
+				]
+			}
+		},
+		"/tasks/{id}/share/{user_id}": {
+			"delete": {
+				"description": "Removes the given user from the task's shared list. Only the task owner can unshare.",
+				"parameters": [
+					{
+						"description": "Task ID",
+						"in": "path",
+						"name": "id",
+						"required": true,
+						"schema": {
+							"type": "integer"
+						}
+					},
+					{
+						"description": "User ID to remove from shared list",
+						"in": "path",
+						"name": "user_id",
+						"required": true,
+						"schema": {
+							"type": "integer"
+						}
+					}
+				],
+				"responses": {
+					"200": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.SuccessResponse"
+								}
+							}
+						},
+						"description": "OK"
+					},
+					"400": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Bad Request"
+					},
+					"401": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Unauthorized"
+					},
+					"403": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Forbidden"
+					},
+					"404": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Not Found"
+					},
+					"500": {
+						"content": {
+							"application/json": {
+								"schema": {
+									"$ref": "#/components/schemas/handlers.ErrorResponse"
+								}
+							}
+						},
+						"description": "Internal Server Error"
+					}
+				},
+				"security": [
+					{
+						"BearerAuth": []
+					}
+				],
+				"summary": "Unshare a task with a user",
+				"tags": [
+					"tasks"
 				]
 			}
 		},
